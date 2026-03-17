@@ -1,0 +1,8 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/payroll"
+  to = "/.netlify/functions/payroll"
+  status = 200
+

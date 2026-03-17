@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://businessmomentum.netlify.app/sitemap.xml
