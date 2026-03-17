@@ -27,7 +27,7 @@ const TAX_BRACKETS = [
 ];
 
 const DISABILITY_TAX_CREDIT_MONTHLY = 600;
-const SDL_RATE_EMPLOYER = 0.005; // Skills Development Levy (employer only)
+const SDL_RATE_EMPLOYER = 0.005; // Skills Development Levy (employer only) - optional in this calculator
 const NAPSA_RATE = 0.05;
 const NAPSA_CAP = 37236;
 const NHIMA_RATE = 0.01;
@@ -63,7 +63,7 @@ exports.handler = async (event) => {
         taxableIncome: 'basicPay + taxableAllowances',
         nhimaBase: 'basicPay (employee 1% + employer 1%)',
         napsaBase: `min(taxableIncome, ${NAPSA_CAP}) (employee 5% + employer 5%)`,
-        sdl: 'employer-only levy on gross emoluments (rate configured)',
+        sdl: 'optional employer-only levy on gross emoluments (disabled by default)',
       },
     });
   }
@@ -115,7 +115,8 @@ exports.handler = async (event) => {
   const nhimaEmployer = asMoney(basicPay * NHIMA_RATE);
 
   // Employer-only: Skills Development Levy (SDL) on gross emoluments.
-  const sdlEmployer = asMoney(grossEmoluments * SDL_RATE_EMPLOYER);
+  const includeSdl = Boolean(payload.includeSdl);
+  const sdlEmployer = includeSdl ? asMoney(grossEmoluments * SDL_RATE_EMPLOYER) : asMoney(0);
 
   const statutoryDeductionsEmployee = asMoney(napsaEmployee + nhimaEmployee);
   const statutoryDeductionsEmployer = asMoney(napsaEmployer + nhimaEmployer + sdlEmployer);
