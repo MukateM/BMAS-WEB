@@ -1,52 +1,19 @@
 {
   "updatedAt": "2026-03-17",
-  "jobs": [
-    {
-      "id": "bmas-hris-001",
-      "title": "HRIS & Payroll Implementation Associate",
-      "company": "Confidential (BMAS Client)",
-      "logo": { "src": "assets/clients/client-01.png", "alt": "Client logo" },
-      "location": "Lusaka, Zambia",
-      "workType": "Full-time",
-      "workMode": "Hybrid",
-      "postedAt": "2026-03-17",
-      "applyBy": "2026-04-15",
-      "summary": "Support HRIS setup, payroll process mapping, and client onboarding.",
-      "highlights": ["HRIS implementation", "Payroll operations", "Client onboarding"],
-      "responsibilities": [
-        "Assist with HRIS configuration, testing, and go-live support.",
-        "Document payroll processes and controls with client teams.",
-        "Support data cleanup, imports, and basic reporting.",
-        "Coordinate training sessions and rollout communications."
-      ],
-      "requirements": [
-        "1–3 years experience in HR, payroll, or HRIS support.",
-        "Comfortable with Excel and structured data.",
-        "Strong communication and documentation skills."
-      ]
-    },
-    {
-      "id": "bmas-fin-002",
-      "title": "Finance & Compliance Officer",
-      "company": "Confidential (BMAS Client)",
-      "logo": { "src": "assets/clients/client-05.png", "alt": "Client logo" },
-      "location": "Kitwe, Zambia",
-      "workType": "Full-time",
-      "workMode": "On-site",
-      "postedAt": "2026-03-10",
-      "applyBy": "2026-04-10",
-      "summary": "Own monthly finance operations and statutory compliance follow-ups.",
-      "highlights": ["Compliance follow-ups", "Reporting", "Process improvement"],
-      "responsibilities": [
-        "Prepare monthly finance reports and reconciliations.",
-        "Coordinate statutory compliance documentation and filings.",
-        "Maintain audit-ready records and improve internal controls."
-      ],
-      "requirements": [
-        "Diploma/degree in accounting, finance, or related field.",
-        "Experience with bookkeeping and reconciliations.",
-        "Attention to detail and ability to work to deadlines."
-      ]
-    }
-  ]
+  "jobs": [],
+  "jobTemplate": {
+    "id": "unique-id",
+    "title": "Role Title",
+    "company": "Company name or 'Confidential (BMAS Client)'",
+    "logo": { "src": "assets/clients/client-01.png", "alt": "Company logo" },
+    "location": "Lusaka, Zambia",
+    "workType": "Full-time",
+    "workMode": "On-site | Hybrid | Remote",
+    "postedAt": "2026-03-17",
+    "applyBy": "2026-04-15",
+    "summary": "1–2 sentence summary of the role.",
+    "highlights": ["Short highlight", "Another highlight"],
+    "responsibilities": ["Responsibility 1", "Responsibility 2"],
+    "requirements": ["Requirement 1", "Requirement 2"]
+  }
 }
