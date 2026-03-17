@@ -78,11 +78,31 @@
     </p>
 
     <form id="payrollForm" class="mt-6 grid md:grid-cols-3 gap-4">
-      <div>
+      <div class="md:col-span-3 flex flex-wrap gap-4 items-center">
+        <span class="text-sm font-medium text-slate-700">Mode</span>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="radio" name="calcMode" value="forward" checked class="rounded border-slate-300" />
+          Net from basic
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="radio" name="calcMode" value="reverse" class="rounded border-slate-300" />
+          Basic from net
+        </label>
+      </div>
+
+      <div id="targetNetWrap" class="hidden md:col-span-3">
+        <label for="targetNet" class="block text-sm font-medium">Target Net Pay</label>
+        <input id="targetNet" name="targetNet" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 9000" />
+        <p class="mt-2 text-xs text-slate-500">
+          Reverse mode uses standard allowances: housing 30%, transport 10%, lunch 10% of basic.
+        </p>
+      </div>
+
+      <div id="basicPayWrap">
         <label for="grossPay" class="block text-sm font-medium">Basic Pay</label>
         <input id="grossPay" name="grossPay" type="number" min="0" step="0.01" required class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 8000" />
       </div>
-      <div>
+      <div id="taxableAllowancesWrap">
         <label for="allowances" class="block text-sm font-medium">Taxable Allowances</label>
         <input id="allowances" name="allowances" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 500" />
       </div>
@@ -116,8 +136,8 @@
     <div id="result" class="mt-6 hidden">
       <div class="grid md:grid-cols-2 gap-4">
         <div class="p-5 border rounded bg-slate-50">
-          <div class="text-sm text-slate-500">Taxable Income</div>
-          <div id="taxableIncome" class="text-2xl font-bold"></div>
+          <div class="text-sm text-slate-500">Basic Pay</div>
+          <div id="basicPayOut" class="text-2xl font-bold"></div>
         </div>
         <div class="p-5 border rounded bg-slate-50">
           <div class="text-sm text-slate-500">Estimated Net Pay</div>
@@ -128,6 +148,8 @@
       <div class="mt-4 p-5 border rounded">
         <h2 class="font-semibold">Breakdown</h2>
         <dl class="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
+          <div><dt class="text-slate-500">Gross Emoluments</dt><dd id="grossEmolumentsOut" class="font-medium"></dd></div>
+          <div><dt class="text-slate-500">Taxable Income</dt><dd id="taxableIncome" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Estimated Tax</dt><dd id="estimatedTax" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Statutory Deductions</dt><dd id="statutoryDeductions" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">NAPSA (Employee)</dt><dd id="napsaEmployee" class="font-medium"></dd></div>
@@ -175,9 +197,44 @@
   const form = document.getElementById('payrollForm');
   const statusEl = document.getElementById('status');
   const resultEl = document.getElementById('result');
+  const targetNetWrap = document.getElementById('targetNetWrap');
+  const targetNetEl = document.getElementById('targetNet');
+  const basicPayEl = document.getElementById('grossPay');
+  const allowancesEl = document.getElementById('allowances');
+  const basicPayWrap = document.getElementById('basicPayWrap');
+  const taxableAllowancesWrap = document.getElementById('taxableAllowancesWrap');
+
+  function getMode() {
+    return document.querySelector('input[name="calcMode"]:checked')?.value || 'forward';
+  }
+
+  function syncModeUi() {
+    const mode = getMode();
+    const isReverse = mode === 'reverse';
+
+    if (targetNetWrap) targetNetWrap.classList.toggle('hidden', !isReverse);
+    if (targetNetEl) targetNetEl.toggleAttribute('required', isReverse);
+    if (basicPayEl) basicPayEl.toggleAttribute('required', !isReverse);
+    if (basicPayWrap) basicPayWrap.classList.toggle('hidden', isReverse);
+    if (taxableAllowancesWrap) taxableAllowancesWrap.classList.toggle('hidden', isReverse);
+
+    if (basicPayEl) basicPayEl.toggleAttribute('disabled', isReverse);
+    if (allowancesEl) allowancesEl.toggleAttribute('disabled', isReverse);
+  }
+
+  document.querySelectorAll('input[name="calcMode"]').forEach((el) => {
+    el.addEventListener('change', () => {
+      syncModeUi();
+      statusEl.textContent = '';
+      resultEl?.classList.add('hidden');
+    });
+  });
+
+  syncModeUi();
 
   document.getElementById('clearPayroll')?.addEventListener('click', () => {
     form?.reset();
+    syncModeUi();
     resultEl?.classList.add('hidden');
     statusEl.textContent = '';
   });
@@ -194,12 +251,22 @@
     const nonTaxableAllowances = document.getElementById('nonTaxableAllowances')?.value || 0;
     const disabilityCredit = Boolean(document.getElementById('disabilityCredit')?.checked);
     const includeSdl = Boolean(document.getElementById('includeSdl')?.checked);
+    const mode = getMode();
+    const targetNet = targetNetEl?.value || 0;
+
+    if (mode === 'reverse' && !String(targetNetEl?.value || '').trim()) {
+      statusEl.textContent = 'Please enter a target net pay.';
+      resultEl?.classList.add('hidden');
+      return;
+    }
 
     async function postPayroll(url) {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
+          mode,
+          targetNet,
           basicPay: grossPay,
           taxableAllowances: allowances,
           nonTaxableAllowances,
@@ -207,6 +274,7 @@
           includeSdl,
           otherDeductions,
           currency: 'ZMW',
+          allowanceRates: mode === 'reverse' ? { housingRate: 0.3, transportRate: 0.1, lunchRate: 0.1 } : undefined,
         }),
       });
 
@@ -244,6 +312,8 @@
       }
 
       const r = result.data.results;
+      document.getElementById('basicPayOut').textContent = money(r.basicPay, r.currency);
+      document.getElementById('grossEmolumentsOut').textContent = money(r.grossEmoluments, r.currency);
       document.getElementById('taxableIncome').textContent = money(r.taxableIncome, r.currency);
       document.getElementById('netPay').textContent = money(r.netPay, r.currency);
       document.getElementById('estimatedTax').textContent = money(r.estimatedTax, r.currency);

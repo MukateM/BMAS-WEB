@@ -48,6 +48,122 @@ function computePaye(taxableIncome) {
   return paye;
 }
 
+function computePayroll({
+  basicPay,
+  taxableAllowances,
+  nonTaxableAllowances,
+  otherDeductions,
+  currency,
+  disabilityCredit,
+  includeSdl,
+}) {
+  const taxableIncome = asMoney(basicPay + taxableAllowances);
+  const grossEmoluments = asMoney(taxableIncome + nonTaxableAllowances);
+
+  // PAYE
+  const disabilityCreditAmount = disabilityCredit ? DISABILITY_TAX_CREDIT_MONTHLY : 0;
+  const rawPaye = asMoney(computePaye(taxableIncome));
+  const paye = asMoney(Math.max(0, rawPaye - disabilityCreditAmount));
+
+  // NAPSA (employee + employer, each 5% capped)
+  const napsaBase = Math.min(taxableIncome, NAPSA_CAP);
+  const napsaEmployee = asMoney(napsaBase * NAPSA_RATE);
+  const napsaEmployer = asMoney(napsaBase * NAPSA_RATE);
+
+  // NHIMA (employee + employer, each 1% of basic pay)
+  const nhimaEmployee = asMoney(basicPay * NHIMA_RATE);
+  const nhimaEmployer = asMoney(basicPay * NHIMA_RATE);
+
+  // Employer-only: Skills Development Levy (SDL) on gross emoluments (optional).
+  const sdlEmployer = includeSdl ? asMoney(grossEmoluments * SDL_RATE_EMPLOYER) : asMoney(0);
+
+  const statutoryDeductionsEmployee = asMoney(napsaEmployee + nhimaEmployee);
+  const statutoryDeductionsEmployer = asMoney(napsaEmployer + nhimaEmployer + sdlEmployer);
+
+  const totalDeductions = asMoney(otherDeductions + statutoryDeductionsEmployee + paye);
+  const netPay = asMoney(grossEmoluments - totalDeductions);
+  const employerCost = asMoney(grossEmoluments + statutoryDeductionsEmployer);
+
+  return {
+    inputs: { basicPay, taxableAllowances, nonTaxableAllowances, otherDeductions, currency },
+    results: {
+      basicPay,
+      taxableAllowances,
+      nonTaxableAllowances,
+      taxableIncome,
+      grossEmoluments,
+      statutoryDeductions: statutoryDeductionsEmployee,
+      estimatedTax: paye,
+      totalDeductions,
+      netPay,
+      breakdown: {
+        paye: {
+          calculated: rawPaye,
+          disabilityCreditApplied: asMoney(disabilityCreditAmount),
+          payable: paye,
+        },
+        napsa: { base: asMoney(napsaBase), employee: napsaEmployee, employer: napsaEmployer },
+        nhima: { base: basicPay, employee: nhimaEmployee, employer: nhimaEmployer },
+        employer: {
+          sdl: sdlEmployer,
+          statutoryContributions: statutoryDeductionsEmployer,
+          estimatedTotalCost: employerCost,
+        },
+      },
+      currency,
+    },
+  };
+}
+
+function solveBasicFromTargetNet({
+  targetNet,
+  allowanceRates,
+  nonTaxableAllowances,
+  otherDeductions,
+  currency,
+  disabilityCredit,
+  includeSdl,
+}) {
+  const housingRate = allowanceRates?.housingRate ?? 0.3;
+  const transportRate = allowanceRates?.transportRate ?? 0.1;
+  const lunchRate = allowanceRates?.lunchRate ?? 0.1;
+  const allowanceFactor = 1 + housingRate + transportRate + lunchRate;
+
+  function netFromBasic(basicPay) {
+    const taxableAllowances = asMoney(basicPay * (allowanceFactor - 1));
+    const computed = computePayroll({
+      basicPay,
+      taxableAllowances,
+      nonTaxableAllowances,
+      otherDeductions,
+      currency,
+      disabilityCredit,
+      includeSdl,
+    });
+    return computed.results.netPay;
+  }
+
+  let low = 0;
+  let high = Math.max(1000, targetNet * 2);
+
+  // Ensure high is high enough.
+  for (let i = 0; i < 30; i++) {
+    const netHigh = netFromBasic(high);
+    if (netHigh >= targetNet) break;
+    high *= 1.5;
+  }
+
+  for (let i = 0; i < 60; i++) {
+    const mid = (low + high) / 2;
+    const netMid = netFromBasic(mid);
+    if (Math.abs(netMid - targetNet) <= 0.01) return asMoney(mid);
+    if (netMid > targetNet) high = mid;
+    else low = mid;
+  }
+
+  return asMoney(high);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return json(204, {});
 
@@ -96,62 +212,50 @@ exports.handler = async (event) => {
   }
 
   const currency = payload.currency || 'ZMW';
-
-  const taxableIncome = asMoney(basicPay + taxableAllowances);
-  const grossEmoluments = asMoney(taxableIncome + nonTaxableAllowances);
-
-  // PAYE
-  const disabilityCredit = payload.disabilityCredit ? DISABILITY_TAX_CREDIT_MONTHLY : 0;
-  const rawPaye = asMoney(computePaye(taxableIncome));
-  const paye = asMoney(Math.max(0, rawPaye - disabilityCredit));
-
-  // NAPSA (employee + employer, each 5% capped)
-  const napsaBase = Math.min(taxableIncome, NAPSA_CAP);
-  const napsaEmployee = asMoney(napsaBase * NAPSA_RATE);
-  const napsaEmployer = asMoney(napsaBase * NAPSA_RATE);
-
-  // NHIMA (employee + employer, each 1% of basic pay)
-  const nhimaEmployee = asMoney(basicPay * NHIMA_RATE);
-  const nhimaEmployer = asMoney(basicPay * NHIMA_RATE);
-
-  // Employer-only: Skills Development Levy (SDL) on gross emoluments.
+  const disabilityCredit = Boolean(payload.disabilityCredit);
   const includeSdl = Boolean(payload.includeSdl);
-  const sdlEmployer = includeSdl ? asMoney(grossEmoluments * SDL_RATE_EMPLOYER) : asMoney(0);
 
-  const statutoryDeductionsEmployee = asMoney(napsaEmployee + nhimaEmployee);
-  const statutoryDeductionsEmployer = asMoney(napsaEmployer + nhimaEmployer + sdlEmployer);
+  const mode = payload.mode === 'reverse' ? 'reverse' : 'forward';
 
-  const totalDeductions = asMoney(otherDeductions + statutoryDeductionsEmployee + paye);
-  const netPay = asMoney(grossEmoluments - totalDeductions);
-  const employerCost = asMoney(grossEmoluments + statutoryDeductionsEmployer);
+  let computedBasicPay = basicPay;
+  let computedTaxableAllowances = taxableAllowances;
+  const allowanceRates = payload.allowanceRates || payload.standardAllowances || null;
+
+  if (mode === 'reverse') {
+    const targetNet = asMoney(payload.targetNet);
+    if (targetNet === null || targetNet < 0) return json(400, { ok: false, error: 'targetNet must be a number >= 0' });
+
+    computedBasicPay = solveBasicFromTargetNet({
+      targetNet,
+      allowanceRates,
+      nonTaxableAllowances,
+      otherDeductions,
+      currency,
+      disabilityCredit,
+      includeSdl,
+    });
+
+    const housingRate = allowanceRates?.housingRate ?? 0.3;
+    const transportRate = allowanceRates?.transportRate ?? 0.1;
+    const lunchRate = allowanceRates?.lunchRate ?? 0.1;
+    computedTaxableAllowances = asMoney(computedBasicPay * (housingRate + transportRate + lunchRate));
+  }
+
+  const { inputs, results } = computePayroll({
+    basicPay: computedBasicPay,
+    taxableAllowances: computedTaxableAllowances,
+    nonTaxableAllowances,
+    otherDeductions,
+    currency,
+    disabilityCredit,
+    includeSdl,
+  });
 
   return json(200, {
     ok: true,
-    inputs: { basicPay, taxableAllowances, nonTaxableAllowances, otherDeductions, currency },
-    results: {
-      basicPay,
-      taxableIncome,
-      grossEmoluments,
-      statutoryDeductions: statutoryDeductionsEmployee,
-      estimatedTax: paye,
-      totalDeductions,
-      netPay,
-      breakdown: {
-        paye: {
-          calculated: rawPaye,
-          disabilityCreditApplied: asMoney(disabilityCredit),
-          payable: paye,
-        },
-        napsa: { base: asMoney(napsaBase), employee: napsaEmployee, employer: napsaEmployer },
-        nhima: { base: basicPay, employee: nhimaEmployee, employer: nhimaEmployer },
-        employer: {
-          sdl: sdlEmployer,
-          statutoryContributions: statutoryDeductionsEmployer,
-          estimatedTotalCost: employerCost,
-        },
-      },
-      currency,
-    },
+    mode,
+    inputs,
+    results,
     disclaimer:
       'Estimate only. Verify PAYE bands and statutory contribution rules for the applicable tax year before using for payroll decisions.',
   });
