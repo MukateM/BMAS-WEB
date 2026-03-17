@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Payroll Calculator — Business Momentum Advisory Services (BMAS)</title>
-  <meta name="description" content="Estimate payroll take-home pay with BMAS. Backend-driven calculator scaffold (add your tax rules for full accuracy)." />
+  <meta name="description" content="Estimate payroll take-home pay with BMAS. Includes PAYE, NAPSA, and NHIMA estimates based on configured rules." />
   <link rel="canonical" href="https://businessmomentum.netlify.app/payroll-calculator.html">
   <meta name="theme-color" content="#0f172a" />
 
   <meta property="og:title" content="Payroll Calculator — BMAS">
-  <meta property="og:description" content="Estimate payroll take-home pay (calculator scaffold).">
+  <meta property="og:description" content="Estimate payroll take-home pay (PAYE, NAPSA, NHIMA).">
   <meta property="og:image" content="bmas.png">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://businessmomentum.netlify.app/payroll-calculator.html">
@@ -71,24 +71,35 @@
   <section class="bg-white p-8 rounded-lg shadow">
     <h1 class="text-3xl font-extrabold text-slate-900">Payroll Calculator</h1>
     <p class="mt-3 text-slate-700">
-      This calculator is backend-driven so the rules can live securely on the server. It’s currently a scaffold until you provide the payroll logic.
+      This calculator is backend-driven so the rules can live securely on the server. It estimates PAYE plus statutory deductions (NAPSA, NHIMA).
     </p>
-    <p class="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
-      Estimate only: statutory deductions and tax are not calculated yet.
+    <p class="mt-2 text-sm text-slate-600 bg-slate-50 border rounded p-3">
+      Estimates only. Always verify rates and thresholds for the current tax year before using for payroll decisions.
     </p>
 
     <form id="payrollForm" class="mt-6 grid md:grid-cols-3 gap-4">
       <div>
-        <label for="grossPay" class="block text-sm font-medium">Gross Pay</label>
+        <label for="grossPay" class="block text-sm font-medium">Basic Pay</label>
         <input id="grossPay" name="grossPay" type="number" min="0" step="0.01" required class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 8000" />
       </div>
       <div>
-        <label for="allowances" class="block text-sm font-medium">Allowances</label>
+        <label for="allowances" class="block text-sm font-medium">Taxable Allowances</label>
         <input id="allowances" name="allowances" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 500" />
       </div>
       <div>
         <label for="otherDeductions" class="block text-sm font-medium">Other Deductions</label>
         <input id="otherDeductions" name="otherDeductions" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 250" />
+      </div>
+
+      <div>
+        <label for="nonTaxableAllowances" class="block text-sm font-medium">Non‑Taxable Allowances (optional)</label>
+        <input id="nonTaxableAllowances" name="nonTaxableAllowances" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 0" />
+      </div>
+      <div class="md:col-span-2 flex items-end">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input id="disabilityCredit" type="checkbox" class="rounded border-slate-300" />
+          Apply disability tax credit (if eligible)
+        </label>
       </div>
 
       <div class="md:col-span-3 flex flex-wrap gap-3 items-center mt-2">
@@ -115,8 +126,11 @@
         <dl class="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
           <div><dt class="text-slate-500">Estimated Tax</dt><dd id="estimatedTax" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Statutory Deductions</dt><dd id="statutoryDeductions" class="font-medium"></dd></div>
+          <div><dt class="text-slate-500">NAPSA (Employee)</dt><dd id="napsaEmployee" class="font-medium"></dd></div>
+          <div><dt class="text-slate-500">NHIMA (Employee)</dt><dd id="nhimaEmployee" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Other Deductions</dt><dd id="otherDeductionsOut" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Total Deductions</dt><dd id="totalDeductions" class="font-medium"></dd></div>
+          <div><dt class="text-slate-500">Employer Cost (Est.)</dt><dd id="employerCost" class="font-medium"></dd></div>
         </dl>
       </div>
     </div>
@@ -173,12 +187,21 @@
     const grossPay = document.getElementById('grossPay').value;
     const allowances = document.getElementById('allowances').value || 0;
     const otherDeductions = document.getElementById('otherDeductions').value || 0;
+    const nonTaxableAllowances = document.getElementById('nonTaxableAllowances')?.value || 0;
+    const disabilityCredit = Boolean(document.getElementById('disabilityCredit')?.checked);
 
     async function postPayroll(url) {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ grossPay, allowances, otherDeductions, currency: 'ZMW' }),
+        body: JSON.stringify({
+          basicPay: grossPay,
+          taxableAllowances: allowances,
+          nonTaxableAllowances,
+          disabilityCredit,
+          otherDeductions,
+          currency: 'ZMW',
+        }),
       });
 
       let data = null;
@@ -219,8 +242,11 @@
       document.getElementById('netPay').textContent = money(r.netPay, r.currency);
       document.getElementById('estimatedTax').textContent = money(r.estimatedTax, r.currency);
       document.getElementById('statutoryDeductions').textContent = money(r.statutoryDeductions, r.currency);
+      document.getElementById('napsaEmployee').textContent = money(r.breakdown?.napsa?.employee, r.currency);
+      document.getElementById('nhimaEmployee').textContent = money(r.breakdown?.nhima?.employee, r.currency);
       document.getElementById('otherDeductionsOut').textContent = money(result.data.inputs.otherDeductions, r.currency);
       document.getElementById('totalDeductions').textContent = money(r.totalDeductions, r.currency);
+      document.getElementById('employerCost').textContent = money(r.breakdown?.employer?.estimatedTotalCost, r.currency);
 
       resultEl.classList.remove('hidden');
       statusEl.textContent = result.data.disclaimer || '';

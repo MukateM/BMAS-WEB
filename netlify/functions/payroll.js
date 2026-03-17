@@ -26,6 +26,8 @@ const TAX_BRACKETS = [
   { upTo: Infinity, rate: 0.37 },
 ];
 
+const DISABILITY_TAX_CREDIT_MONTHLY = 600;
+const SDL_RATE_EMPLOYER = 0.005; // Skills Development Levy (employer only)
 const NAPSA_RATE = 0.05;
 const NAPSA_CAP = 37236;
 const NHIMA_RATE = 0.01;
@@ -53,9 +55,16 @@ exports.handler = async (event) => {
     return json(200, {
       ok: true,
       calculator: 'BMAS Payroll Calculator',
-      version: '0.2.0',
+      version: '0.3.0',
       note:
         'This endpoint provides an estimate based on configured Zambia payroll rules. Verify bands/rates for the current tax year before using for payroll decisions.',
+      assumptions: {
+        payPeriod: 'monthly',
+        taxableIncome: 'basicPay + taxableAllowances',
+        nhimaBase: 'basicPay (employee 1% + employer 1%)',
+        napsaBase: `min(taxableIncome, ${NAPSA_CAP}) (employee 5% + employer 5%)`,
+        sdl: 'employer-only levy on gross emoluments (rate configured)',
+      },
     });
   }
 
@@ -68,49 +77,79 @@ exports.handler = async (event) => {
     return json(400, { ok: false, error: 'Invalid JSON body' });
   }
 
-  const grossPay = asMoney(payload.grossPay);
-  const allowances = asMoney(payload.allowances ?? 0);
+  // Back-compat: existing frontend sends { grossPay, allowances }.
+  // Prefer the clearer field names when provided.
+  const basicPay = asMoney(payload.basicPay ?? payload.grossPay);
+  const taxableAllowances = asMoney(payload.taxableAllowances ?? payload.allowances ?? 0);
+  const nonTaxableAllowances = asMoney(payload.nonTaxableAllowances ?? 0);
   const otherDeductions = asMoney(payload.otherDeductions ?? 0);
 
-  if (grossPay === null || grossPay < 0) return json(400, { ok: false, error: 'grossPay must be a number >= 0' });
-  if (allowances === null || allowances < 0) return json(400, { ok: false, error: 'allowances must be a number >= 0' });
+  if (basicPay === null || basicPay < 0) return json(400, { ok: false, error: 'basicPay must be a number >= 0' });
+  if (taxableAllowances === null || taxableAllowances < 0) {
+    return json(400, { ok: false, error: 'taxableAllowances must be a number >= 0' });
+  }
+  if (nonTaxableAllowances === null || nonTaxableAllowances < 0) {
+    return json(400, { ok: false, error: 'nonTaxableAllowances must be a number >= 0' });
+  }
   if (otherDeductions === null || otherDeductions < 0) {
     return json(400, { ok: false, error: 'otherDeductions must be a number >= 0' });
   }
 
-  // Assumptions for this calculator:
-  // - `grossPay` is the employee's basic pay
-  // - `allowances` are additional taxable allowances
-  // - NHIMA is calculated on basic pay (not allowances)
-  const basicPay = asMoney(grossPay);
-  const taxableIncome = asMoney(grossPay + allowances);
+  const currency = payload.currency || 'ZMW';
 
-  const paye = asMoney(computePaye(taxableIncome));
+  const taxableIncome = asMoney(basicPay + taxableAllowances);
+  const grossEmoluments = asMoney(taxableIncome + nonTaxableAllowances);
+
+  // PAYE
+  const disabilityCredit = payload.disabilityCredit ? DISABILITY_TAX_CREDIT_MONTHLY : 0;
+  const rawPaye = asMoney(computePaye(taxableIncome));
+  const paye = asMoney(Math.max(0, rawPaye - disabilityCredit));
+
+  // NAPSA (employee + employer, each 5% capped)
   const napsaBase = Math.min(taxableIncome, NAPSA_CAP);
-  const napsa = asMoney(napsaBase * NAPSA_RATE);
-  const nhima = asMoney(basicPay * NHIMA_RATE);
+  const napsaEmployee = asMoney(napsaBase * NAPSA_RATE);
+  const napsaEmployer = asMoney(napsaBase * NAPSA_RATE);
 
-  const statutoryDeductions = asMoney(napsa + nhima);
-  const estimatedTax = asMoney(paye);
-  const totalDeductions = asMoney(otherDeductions + statutoryDeductions + estimatedTax);
-  const netPay = asMoney(taxableIncome - totalDeductions);
+  // NHIMA (employee + employer, each 1% of basic pay)
+  const nhimaEmployee = asMoney(basicPay * NHIMA_RATE);
+  const nhimaEmployer = asMoney(basicPay * NHIMA_RATE);
+
+  // Employer-only: Skills Development Levy (SDL) on gross emoluments.
+  const sdlEmployer = asMoney(grossEmoluments * SDL_RATE_EMPLOYER);
+
+  const statutoryDeductionsEmployee = asMoney(napsaEmployee + nhimaEmployee);
+  const statutoryDeductionsEmployer = asMoney(napsaEmployer + nhimaEmployer + sdlEmployer);
+
+  const totalDeductions = asMoney(otherDeductions + statutoryDeductionsEmployee + paye);
+  const netPay = asMoney(grossEmoluments - totalDeductions);
+  const employerCost = asMoney(grossEmoluments + statutoryDeductionsEmployer);
 
   return json(200, {
     ok: true,
-    inputs: { grossPay, allowances, otherDeductions },
+    inputs: { basicPay, taxableAllowances, nonTaxableAllowances, otherDeductions, currency },
     results: {
       basicPay,
       taxableIncome,
-      statutoryDeductions,
-      estimatedTax,
+      grossEmoluments,
+      statutoryDeductions: statutoryDeductionsEmployee,
+      estimatedTax: paye,
       totalDeductions,
       netPay,
       breakdown: {
-        paye,
-        napsa,
-        nhima,
+        paye: {
+          calculated: rawPaye,
+          disabilityCreditApplied: asMoney(disabilityCredit),
+          payable: paye,
+        },
+        napsa: { base: asMoney(napsaBase), employee: napsaEmployee, employer: napsaEmployer },
+        nhima: { base: basicPay, employee: nhimaEmployee, employer: nhimaEmployer },
+        employer: {
+          sdl: sdlEmployer,
+          statutoryContributions: statutoryDeductionsEmployer,
+          estimatedTotalCost: employerCost,
+        },
       },
-      currency: payload.currency || 'ZMW',
+      currency,
     },
     disclaimer:
       'Estimate only. Verify PAYE bands and statutory contribution rules for the applicable tax year before using for payroll decisions.',
