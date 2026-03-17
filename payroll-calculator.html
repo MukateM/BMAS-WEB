@@ -81,12 +81,12 @@
       <div class="md:col-span-3 flex flex-wrap gap-4 items-center">
         <span class="text-sm font-medium text-slate-700">Mode</span>
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="radio" name="calcMode" value="forward" checked class="rounded border-slate-300" />
-          Net from basic
+          <input type="radio" name="calcMode" value="gross" checked class="rounded border-slate-300" />
+          Gross to net
         </label>
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
           <input type="radio" name="calcMode" value="reverse" class="rounded border-slate-300" />
-          Basic from net
+          Net to gross
         </label>
       </div>
 
@@ -98,13 +98,12 @@
         </p>
       </div>
 
-      <div id="basicPayWrap">
-        <label for="grossPay" class="block text-sm font-medium">Basic Pay</label>
-        <input id="grossPay" name="grossPay" type="number" min="0" step="0.01" required class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 8000" />
-      </div>
-      <div id="taxableAllowancesWrap">
-        <label for="allowances" class="block text-sm font-medium">Taxable Allowances</label>
-        <input id="allowances" name="allowances" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 500" />
+      <div id="grossPayWrap" class="md:col-span-3">
+        <label for="grossPay" class="block text-sm font-medium">Gross Pay</label>
+        <input id="grossPay" name="grossPay" type="number" min="0" step="0.01" required class="mt-1 w-full rounded border px-3 py-2" placeholder="e.g. 12000" />
+        <p class="mt-2 text-xs text-slate-500">
+          Gross Pay is estimated as basic + standard taxable allowances (housing 30%, transport 10%, lunch 10%).
+        </p>
       </div>
       <div>
         <label for="otherDeductions" class="block text-sm font-medium">Other Deductions</label>
@@ -136,8 +135,8 @@
     <div id="result" class="mt-6 hidden">
       <div class="grid md:grid-cols-2 gap-4">
         <div class="p-5 border rounded bg-slate-50">
-          <div class="text-sm text-slate-500">Basic Pay</div>
-          <div id="basicPayOut" class="text-2xl font-bold"></div>
+          <div class="text-sm text-slate-500">Estimated Gross Pay</div>
+          <div id="grossPayOut" class="text-2xl font-bold"></div>
         </div>
         <div class="p-5 border rounded bg-slate-50">
           <div class="text-sm text-slate-500">Estimated Net Pay</div>
@@ -150,6 +149,8 @@
         <dl class="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
           <div><dt class="text-slate-500">Gross Emoluments</dt><dd id="grossEmolumentsOut" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Taxable Income</dt><dd id="taxableIncome" class="font-medium"></dd></div>
+          <div><dt class="text-slate-500">Basic Pay (Est.)</dt><dd id="basicPayOut" class="font-medium"></dd></div>
+          <div><dt class="text-slate-500">Taxable Allowances (Est.)</dt><dd id="taxableAllowancesOut" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Estimated Tax</dt><dd id="estimatedTax" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">Statutory Deductions</dt><dd id="statutoryDeductions" class="font-medium"></dd></div>
           <div><dt class="text-slate-500">NAPSA (Employee)</dt><dd id="napsaEmployee" class="font-medium"></dd></div>
@@ -199,13 +200,11 @@
   const resultEl = document.getElementById('result');
   const targetNetWrap = document.getElementById('targetNetWrap');
   const targetNetEl = document.getElementById('targetNet');
-  const basicPayEl = document.getElementById('grossPay');
-  const allowancesEl = document.getElementById('allowances');
-  const basicPayWrap = document.getElementById('basicPayWrap');
-  const taxableAllowancesWrap = document.getElementById('taxableAllowancesWrap');
+  const grossPayEl = document.getElementById('grossPay');
+  const grossPayWrap = document.getElementById('grossPayWrap');
 
   function getMode() {
-    return document.querySelector('input[name="calcMode"]:checked')?.value || 'forward';
+    return document.querySelector('input[name="calcMode"]:checked')?.value || 'gross';
   }
 
   function syncModeUi() {
@@ -214,12 +213,9 @@
 
     if (targetNetWrap) targetNetWrap.classList.toggle('hidden', !isReverse);
     if (targetNetEl) targetNetEl.toggleAttribute('required', isReverse);
-    if (basicPayEl) basicPayEl.toggleAttribute('required', !isReverse);
-    if (basicPayWrap) basicPayWrap.classList.toggle('hidden', isReverse);
-    if (taxableAllowancesWrap) taxableAllowancesWrap.classList.toggle('hidden', isReverse);
-
-    if (basicPayEl) basicPayEl.toggleAttribute('disabled', isReverse);
-    if (allowancesEl) allowancesEl.toggleAttribute('disabled', isReverse);
+    if (grossPayWrap) grossPayWrap.classList.toggle('hidden', isReverse);
+    if (grossPayEl) grossPayEl.toggleAttribute('required', !isReverse);
+    if (grossPayEl) grossPayEl.toggleAttribute('disabled', isReverse);
   }
 
   document.querySelectorAll('input[name="calcMode"]').forEach((el) => {
@@ -246,7 +242,6 @@
     statusEl.textContent = 'Calculating...';
 
     const grossPay = document.getElementById('grossPay').value;
-    const allowances = document.getElementById('allowances').value || 0;
     const otherDeductions = document.getElementById('otherDeductions').value || 0;
     const nonTaxableAllowances = document.getElementById('nonTaxableAllowances')?.value || 0;
     const disabilityCredit = Boolean(document.getElementById('disabilityCredit')?.checked);
@@ -267,14 +262,13 @@
         body: JSON.stringify({
           mode,
           targetNet,
-          basicPay: grossPay,
-          taxableAllowances: allowances,
+          grossPay,
           nonTaxableAllowances,
           disabilityCredit,
           includeSdl,
           otherDeductions,
           currency: 'ZMW',
-          allowanceRates: mode === 'reverse' ? { housingRate: 0.3, transportRate: 0.1, lunchRate: 0.1 } : undefined,
+          allowanceRates: { housingRate: 0.3, transportRate: 0.1, lunchRate: 0.1 },
         }),
       });
 
@@ -312,9 +306,11 @@
       }
 
       const r = result.data.results;
-      document.getElementById('basicPayOut').textContent = money(r.basicPay, r.currency);
+      document.getElementById('grossPayOut').textContent = money(r.grossPayStandard ?? r.grossEmoluments, r.currency);
       document.getElementById('grossEmolumentsOut').textContent = money(r.grossEmoluments, r.currency);
       document.getElementById('taxableIncome').textContent = money(r.taxableIncome, r.currency);
+      document.getElementById('basicPayOut').textContent = money(r.basicPay, r.currency);
+      document.getElementById('taxableAllowancesOut').textContent = money(r.taxableAllowances, r.currency);
       document.getElementById('netPay').textContent = money(r.netPay, r.currency);
       document.getElementById('estimatedTax').textContent = money(r.estimatedTax, r.currency);
       document.getElementById('statutoryDeductions').textContent = money(r.statutoryDeductions, r.currency);

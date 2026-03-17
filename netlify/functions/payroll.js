@@ -48,6 +48,36 @@ function computePaye(taxableIncome) {
   return paye;
 }
 
+function normalizeAllowanceRates(allowanceRates) {
+  const housingRate = allowanceRates?.housingRate ?? 0.3;
+  const transportRate = allowanceRates?.transportRate ?? 0.1;
+  const lunchRate = allowanceRates?.lunchRate ?? 0.1;
+  return {
+    housingRate,
+    transportRate,
+    lunchRate,
+    totalRate: housingRate + transportRate + lunchRate,
+  };
+}
+
+function deriveFromGrossPay(grossPay, allowanceRates) {
+  const rates = normalizeAllowanceRates(allowanceRates);
+  const factor = 1 + rates.totalRate;
+  const basicPay = asMoney(grossPay / factor);
+  const taxableAllowances = asMoney(grossPay - basicPay);
+  return {
+    basicPay,
+    taxableAllowances,
+    rates,
+    allowancesBreakdown: {
+      housing: asMoney(basicPay * rates.housingRate),
+      transport: asMoney(basicPay * rates.transportRate),
+      lunch: asMoney(basicPay * rates.lunchRate),
+      total: taxableAllowances,
+    },
+  };
+}
+
 function computePayroll({
   basicPay,
   taxableAllowances,
@@ -97,6 +127,7 @@ function computePayroll({
       totalDeductions,
       netPay,
       breakdown: {
+        allowances: null,
         paye: {
           calculated: rawPaye,
           disabilityCreditApplied: asMoney(disabilityCreditAmount),
@@ -124,10 +155,8 @@ function solveBasicFromTargetNet({
   disabilityCredit,
   includeSdl,
 }) {
-  const housingRate = allowanceRates?.housingRate ?? 0.3;
-  const transportRate = allowanceRates?.transportRate ?? 0.1;
-  const lunchRate = allowanceRates?.lunchRate ?? 0.1;
-  const allowanceFactor = 1 + housingRate + transportRate + lunchRate;
+  const rates = normalizeAllowanceRates(allowanceRates);
+  const allowanceFactor = 1 + rates.totalRate;
 
   function netFromBasic(basicPay) {
     const taxableAllowances = asMoney(basicPay * (allowanceFactor - 1));
@@ -181,6 +210,11 @@ exports.handler = async (event) => {
         napsaBase: `min(taxableIncome, ${NAPSA_CAP}) (employee 5% + employer 5%)`,
         sdl: 'optional employer-only levy on gross emoluments (disabled by default)',
       },
+      modes: {
+        gross: 'Gross (basic + standard taxable allowances) -> net',
+        reverse: 'Target net -> estimated gross (standard taxable allowances)',
+        forward: 'Legacy: basic + taxable allowances -> net',
+      },
     });
   }
 
@@ -193,17 +227,25 @@ exports.handler = async (event) => {
     return json(400, { ok: false, error: 'Invalid JSON body' });
   }
 
-  // Back-compat: existing frontend sends { grossPay, allowances }.
+  // Back-compat: older frontend used { grossPay, allowances } to mean { basicPay, taxableAllowances }.
   // Prefer the clearer field names when provided.
-  const basicPay = asMoney(payload.basicPay ?? payload.grossPay);
+  const basicPay = asMoney(payload.basicPay ?? (payload.mode === 'gross' ? null : payload.grossPay));
   const taxableAllowances = asMoney(payload.taxableAllowances ?? payload.allowances ?? 0);
+  const grossPay = asMoney(payload.grossPay);
   const nonTaxableAllowances = asMoney(payload.nonTaxableAllowances ?? 0);
   const otherDeductions = asMoney(payload.otherDeductions ?? 0);
 
-  if (basicPay === null || basicPay < 0) return json(400, { ok: false, error: 'basicPay must be a number >= 0' });
-  if (taxableAllowances === null || taxableAllowances < 0) {
-    return json(400, { ok: false, error: 'taxableAllowances must be a number >= 0' });
+  const mode = payload.mode === 'reverse' ? 'reverse' : payload.mode === 'gross' ? 'gross' : 'forward';
+
+  if (mode === 'gross') {
+    if (grossPay === null || grossPay < 0) return json(400, { ok: false, error: 'grossPay must be a number >= 0' });
+  } else if (mode === 'forward') {
+    if (basicPay === null || basicPay < 0) return json(400, { ok: false, error: 'basicPay must be a number >= 0' });
+    if (taxableAllowances === null || taxableAllowances < 0) {
+      return json(400, { ok: false, error: 'taxableAllowances must be a number >= 0' });
+    }
   }
+
   if (nonTaxableAllowances === null || nonTaxableAllowances < 0) {
     return json(400, { ok: false, error: 'nonTaxableAllowances must be a number >= 0' });
   }
@@ -215,11 +257,11 @@ exports.handler = async (event) => {
   const disabilityCredit = Boolean(payload.disabilityCredit);
   const includeSdl = Boolean(payload.includeSdl);
 
-  const mode = payload.mode === 'reverse' ? 'reverse' : 'forward';
-
   let computedBasicPay = basicPay;
   let computedTaxableAllowances = taxableAllowances;
   const allowanceRates = payload.allowanceRates || payload.standardAllowances || null;
+  let allowancesBreakdown = null;
+  let grossPayStandard = null;
 
   if (mode === 'reverse') {
     const targetNet = asMoney(payload.targetNet);
@@ -235,10 +277,18 @@ exports.handler = async (event) => {
       includeSdl,
     });
 
-    const housingRate = allowanceRates?.housingRate ?? 0.3;
-    const transportRate = allowanceRates?.transportRate ?? 0.1;
-    const lunchRate = allowanceRates?.lunchRate ?? 0.1;
-    computedTaxableAllowances = asMoney(computedBasicPay * (housingRate + transportRate + lunchRate));
+    const rates = normalizeAllowanceRates(allowanceRates);
+    computedTaxableAllowances = asMoney(computedBasicPay * rates.totalRate);
+    grossPayStandard = asMoney(computedBasicPay + computedTaxableAllowances);
+    allowancesBreakdown = deriveFromGrossPay(grossPayStandard, allowanceRates).allowancesBreakdown;
+  }
+
+  if (mode === 'gross') {
+    const derived = deriveFromGrossPay(grossPay, allowanceRates);
+    computedBasicPay = derived.basicPay;
+    computedTaxableAllowances = derived.taxableAllowances;
+    grossPayStandard = asMoney(grossPay);
+    allowancesBreakdown = derived.allowancesBreakdown;
   }
 
   const { inputs, results } = computePayroll({
@@ -250,6 +300,9 @@ exports.handler = async (event) => {
     disabilityCredit,
     includeSdl,
   });
+
+  results.breakdown.allowances = allowancesBreakdown;
+  if (grossPayStandard !== null) results.grossPayStandard = grossPayStandard;
 
   return json(200, {
     ok: true,
