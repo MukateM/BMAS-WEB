@@ -417,7 +417,7 @@
 
     const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
     if (jobs.length === 0) {
-      statusEl.textContent = 'No roles listed yet. Add roles in assets/jobs.json under the "jobs" array.';
+      statusEl.textContent = 'No roles listed yet.';
       return;
     }
 
