@@ -14,6 +14,48 @@ body {
   background-position: -260px 180px, calc(100% + 220px) 520px, 55% 100%;
 }
 
+body.inner-brand-bg {
+  position: relative;
+}
+
+body.inner-brand-bg::before,
+body.inner-brand-bg::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  width: min(40vw, 500px);
+  aspect-ratio: 1;
+  background-image: url('../bmas.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.085;
+  pointer-events: none;
+  z-index: 0;
+  filter: grayscale(1) saturate(0) contrast(1.08);
+}
+
+body.inner-brand-bg::before {
+  top: 116px;
+  right: -56px;
+  transform: rotate(-14deg);
+}
+
+body.inner-brand-bg::after {
+  bottom: 36px;
+  left: -72px;
+  width: min(32vw, 380px);
+  opacity: 0.06;
+  transform: rotate(12deg);
+}
+
+body.inner-brand-bg > header,
+body.inner-brand-bg > main,
+body.inner-brand-bg > footer {
+  position: relative;
+  z-index: 1;
+}
+
 .hero-bg {
   position: relative;
   isolation: isolate;

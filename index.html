@@ -184,7 +184,6 @@
     <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
       <div>
         <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-600">Integrated Payroll & HRIS</p>
-        <h2 class="mt-3 text-2xl md:text-3xl font-bold text-slate-900">See how the HR system looks before you book a consultation</h2>
         <p class="mt-4 max-w-2xl text-slate-700">
           Right after exploring our core services, you can preview the HR system interface and get a feel for the experience your team would be using.
         </p>
@@ -295,15 +294,16 @@
   © <span id="year"></span> Business Momentum Advisory Services — All rights reserved.
 </footer>
 
-<div id="consultModal" class="fixed inset-0 hidden items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="consultTitle">
+<div id="consultModal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="consultTitle">
   <div class="absolute inset-0 modal-backdrop z-0" id="modalBackdrop"></div>
-  <div class="relative max-w-2xl w-full bg-white rounded-lg shadow-lg p-6 z-10">
+  <div class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
     <div class="flex justify-between items-center">
       <h3 class="text-lg font-semibold" id="consultTitle">Request a Consultation</h3>
       <button id="closeConsult" class="text-slate-600" type="button" aria-label="Close dialog">✕</button>
     </div>
     <form id="consultForm" class="mt-4 space-y-3"
           action="https://formspree.io/f/xldoyovv" method="POST" novalidate>
+      <input type="text" name="_gotcha" class="hidden" tabindex="-1" autocomplete="off" />
       <input id="c_name" name="Full Name" required autocomplete="name" placeholder="Full Name" class="w-full rounded border px-3 py-2" />
       <input id="c_email" name="Email" type="email" required autocomplete="email" placeholder="Email" class="w-full rounded border px-3 py-2" />
       <input id="c_phone" name="Phone Number" required autocomplete="tel" placeholder="Phone Number" class="w-full rounded border px-3 py-2" />
@@ -317,9 +317,9 @@
   </div>
 </div>
 
-<div id="profileModal" class="fixed inset-0 hidden items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+<div id="profileModal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
   <div class="absolute inset-0 modal-backdrop z-0" id="profileBackdrop"></div>
-  <div class="relative max-w-xl w-full bg-white rounded-lg shadow-lg p-6 z-10">
+  <div class="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
     <div class="flex justify-between items-center">
       <h3 class="text-lg font-semibold" id="profileTitle">Company Profile</h3>
       <button id="closeProfile" class="text-slate-600" type="button" aria-label="Close dialog">✕</button>

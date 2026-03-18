@@ -1,11 +1,33 @@
-function json(statusCode, body) {
+function buildCorsHeaders(origin) {
+  const allowedOrigins = new Set([
+    'http://localhost:8888',
+    'http://127.0.0.1:8888',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500',
+  ]);
+
+  const envOrigin = process.env.URL || process.env.DEPLOY_PRIME_URL;
+  if (envOrigin) allowedOrigins.add(envOrigin);
+
+  const headers = {
+    'access-control-allow-headers': 'content-type',
+    'access-control-allow-methods': 'GET,POST,OPTIONS',
+  };
+
+  if (origin && allowedOrigins.has(origin)) {
+    headers['access-control-allow-origin'] = origin;
+    headers.vary = 'Origin';
+  }
+
+  return headers;
+}
+
+function json(statusCode, body, origin) {
   return {
     statusCode,
     headers: {
       'content-type': 'application/json; charset=utf-8',
-      'access-control-allow-origin': '*',
-      'access-control-allow-headers': 'content-type',
-      'access-control-allow-methods': 'GET,POST,OPTIONS',
+      ...buildCorsHeaders(origin),
     },
     body: JSON.stringify(body),
   };
@@ -194,7 +216,9 @@ function solveBasicFromTargetNet({
 }
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return json(204, {});
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+
+  if (event.httpMethod === 'OPTIONS') return json(204, {}, origin);
 
   if (event.httpMethod === 'GET') {
     return json(200, {
@@ -215,16 +239,20 @@ exports.handler = async (event) => {
         reverse: 'Target net -> estimated gross (standard taxable allowances)',
         forward: 'Legacy: basic + taxable allowances -> net',
       },
-    });
+    }, origin);
   }
 
-  if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
+  if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' }, origin);
+
+  if ((event.body || '').length > 10000) {
+    return json(413, { ok: false, error: 'Payload too large' }, origin);
+  }
 
   let payload;
   try {
     payload = event.body ? JSON.parse(event.body) : {};
   } catch {
-    return json(400, { ok: false, error: 'Invalid JSON body' });
+    return json(400, { ok: false, error: 'Invalid JSON body' }, origin);
   }
 
   // Back-compat: older frontend used { grossPay, allowances } to mean { basicPay, taxableAllowances }.
@@ -238,19 +266,19 @@ exports.handler = async (event) => {
   const mode = payload.mode === 'reverse' ? 'reverse' : payload.mode === 'gross' ? 'gross' : 'forward';
 
   if (mode === 'gross') {
-    if (grossPay === null || grossPay < 0) return json(400, { ok: false, error: 'grossPay must be a number >= 0' });
+    if (grossPay === null || grossPay < 0) return json(400, { ok: false, error: 'grossPay must be a number >= 0' }, origin);
   } else if (mode === 'forward') {
-    if (basicPay === null || basicPay < 0) return json(400, { ok: false, error: 'basicPay must be a number >= 0' });
+    if (basicPay === null || basicPay < 0) return json(400, { ok: false, error: 'basicPay must be a number >= 0' }, origin);
     if (taxableAllowances === null || taxableAllowances < 0) {
-      return json(400, { ok: false, error: 'taxableAllowances must be a number >= 0' });
+      return json(400, { ok: false, error: 'taxableAllowances must be a number >= 0' }, origin);
     }
   }
 
   if (nonTaxableAllowances === null || nonTaxableAllowances < 0) {
-    return json(400, { ok: false, error: 'nonTaxableAllowances must be a number >= 0' });
+    return json(400, { ok: false, error: 'nonTaxableAllowances must be a number >= 0' }, origin);
   }
   if (otherDeductions === null || otherDeductions < 0) {
-    return json(400, { ok: false, error: 'otherDeductions must be a number >= 0' });
+    return json(400, { ok: false, error: 'otherDeductions must be a number >= 0' }, origin);
   }
 
   const currency = payload.currency || 'ZMW';
@@ -265,7 +293,7 @@ exports.handler = async (event) => {
 
   if (mode === 'reverse') {
     const targetNet = asMoney(payload.targetNet);
-    if (targetNet === null || targetNet < 0) return json(400, { ok: false, error: 'targetNet must be a number >= 0' });
+    if (targetNet === null || targetNet < 0) return json(400, { ok: false, error: 'targetNet must be a number >= 0' }, origin);
 
     computedBasicPay = solveBasicFromTargetNet({
       targetNet,
@@ -311,5 +339,5 @@ exports.handler = async (event) => {
     results,
     disclaimer:
       'Estimate only. Verify PAYE bands and statutory contribution rules for the applicable tax year before using for payroll decisions.',
-  });
+  }, origin);
 };
