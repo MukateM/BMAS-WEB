@@ -12,6 +12,8 @@
   }
 
   const consultModal = document.getElementById('consultModal');
+  const videoModal = document.getElementById('videoModal');
+  const videoFrame = document.getElementById('videoFrame');
   const focusableSelector =
     'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
   let lastActiveElement = null;
@@ -33,6 +35,66 @@
   }
 
   const profileModal = document.getElementById('profileModal');
+
+  if (videoModal && videoFrame) {
+    function setVideoPlayback(isPlaying) {
+      const embedSrc = videoFrame.dataset.src || '';
+      if (!embedSrc) return;
+      videoFrame.src = isPlaying ? embedSrc : '';
+    }
+
+    function openVideoModal() {
+      if (consultModal && consultModal.classList.contains('flex') && !consultModal.classList.contains('hidden')) return;
+      if (profileModal && profileModal.classList.contains('flex') && !profileModal.classList.contains('hidden')) return;
+
+      setVideoPlayback(true);
+      openModal(videoModal, '#closeVideo');
+    }
+
+    function closeVideoModal() {
+      closeModal(videoModal);
+      setVideoPlayback(false);
+    }
+
+    ['openVideoCard'].forEach((id) => {
+      const trigger = document.getElementById(id);
+      if (trigger) trigger.addEventListener('click', openVideoModal);
+    });
+
+    const closeBtn = document.getElementById('closeVideo');
+    if (closeBtn) closeBtn.addEventListener('click', closeVideoModal);
+
+    const backdrop = document.getElementById('videoBackdrop');
+    if (backdrop) backdrop.addEventListener('click', closeVideoModal);
+
+    document.addEventListener('keydown', (e) => {
+      const isOpen = videoModal.classList.contains('flex') && !videoModal.classList.contains('hidden');
+      if (!isOpen) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeVideoModal();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const focusable = Array.from(videoModal.querySelectorAll(focusableSelector)).filter(
+          (el) => !el.hasAttribute('disabled') && el.getAttribute('tabindex') !== '-1',
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+  }
 
   // Consultation modal wiring (if present on the page).
   if (consultModal) {
