@@ -237,6 +237,7 @@
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    // Oracle runs the numbers.
     statusEl.textContent = 'Calculating...';
 
     const grossPay = document.getElementById('grossPay').value;
@@ -254,6 +255,7 @@
     }
 
     async function postPayroll(url) {
+      // Bat-Signal to the Vercel cave.
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -273,9 +275,7 @@
       let data = null;
       try {
         data = await res.json();
-      } catch {
-        // ignore
-      }
+      } catch {}
 
       return { res, data };
     }

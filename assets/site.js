@@ -1,4 +1,5 @@
 (() => {
+  // Alfred keeps the lights on.
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
@@ -96,8 +97,8 @@
     });
   }
 
-  // Consultation modal wiring (if present on the page).
   if (consultModal) {
+    // Commissioner Gordon opens the hotline when the signal goes up.
     function openConsultModal() {
       openModal(consultModal, '#c_name');
     }
@@ -153,8 +154,8 @@
     });
   }
 
-  // Company profile modal: show on first load of the home page (1x per browser per day).
   if (profileModal && document.body?.dataset?.page === 'home') {
+    // Lucius Fox handles the polished first impression.
     function openProfileModal() {
       openModal(profileModal, '#downloadProfile');
     }
@@ -179,7 +180,6 @@
       try {
         localStorage.setItem('bmas_profile_prompt_seen', String(Date.now()));
       } catch (e) {
-        // Ignore storage errors.
       }
     }
 
@@ -233,10 +233,10 @@
     });
   }
 
-  // Jobs board (Careers page)
   const jobsBoard = document.getElementById('jobsBoard');
   const jobApplyModal = document.getElementById('jobApplyModal');
 
+  // The Batcomputer sorts the leads.
   function uniqueStrings(values) {
     return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
   }
@@ -389,7 +389,7 @@
     if (!jobApplyModal) return null;
 
     function openJobApply(job) {
-      // Prevent stacking modals.
+      // No multiverse crossover events inside the modal stack.
       if (consultModal && consultModal.classList.contains('flex') && !consultModal.classList.contains('hidden')) return;
       if (profileModal && profileModal.classList.contains('flex') && !profileModal.classList.contains('hidden')) return;
 
@@ -551,7 +551,7 @@
     render();
   }
 
-  // Fire and forget.
+  // Batman does not wait for DOM gossip.
   initJobsBoard();
 
 })();
