@@ -1,13 +1,18 @@
 function buildCorsHeaders(origin) {
   const allowedOrigins = new Set([
-    'http://localhost:8888',
-    'http://127.0.0.1:8888',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
     'http://localhost:5500',
     'http://127.0.0.1:5500',
+    'https://bmas.vercel.app',
   ]);
 
-  const envOrigin = process.env.URL || process.env.DEPLOY_PRIME_URL;
-  if (envOrigin) allowedOrigins.add(envOrigin);
+  const envOrigins = [
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '',
+  ].filter(Boolean);
+
+  envOrigins.forEach((value) => allowedOrigins.add(value));
 
   const headers = {
     'access-control-allow-headers': 'content-type',
@@ -22,15 +27,10 @@ function buildCorsHeaders(origin) {
   return headers;
 }
 
-function json(statusCode, body, origin) {
-  return {
-    statusCode,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      ...buildCorsHeaders(origin),
-    },
-    body: JSON.stringify(body),
-  };
+function sendJson(res, statusCode, body, origin) {
+  const headers = buildCorsHeaders(origin);
+  Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
+  res.status(statusCode).json(body);
 }
 
 function asMoney(value) {
@@ -39,8 +39,6 @@ function asMoney(value) {
   return Math.round(num * 100) / 100;
 }
 
-// Zambia payroll ruleset (configured for 2026 in the user's reference implementation).
-// IMPORTANT: Statutory rates/bands can change; treat as estimates unless verified for the current tax year.
 const TAX_BRACKETS = [
   { upTo: 5100, rate: 0.0 },
   { upTo: 7100, rate: 0.2 },
@@ -49,7 +47,7 @@ const TAX_BRACKETS = [
 ];
 
 const DISABILITY_TAX_CREDIT_MONTHLY = 600;
-const SDL_RATE_EMPLOYER = 0.005; 
+const SDL_RATE_EMPLOYER = 0.005;
 const NAPSA_RATE = 0.05;
 const NAPSA_CAP = 37236;
 const NHIMA_RATE = 0.01;
@@ -111,27 +109,17 @@ function computePayroll({
 }) {
   const taxableIncome = asMoney(basicPay + taxableAllowances);
   const grossEmoluments = asMoney(taxableIncome + nonTaxableAllowances);
-
-  // PAYE
   const disabilityCreditAmount = disabilityCredit ? DISABILITY_TAX_CREDIT_MONTHLY : 0;
   const rawPaye = asMoney(computePaye(taxableIncome));
   const paye = asMoney(Math.max(0, rawPaye - disabilityCreditAmount));
-
-  // NAPSA (employee + employer, each 5% capped)
   const napsaBase = Math.min(taxableIncome, NAPSA_CAP);
   const napsaEmployee = asMoney(napsaBase * NAPSA_RATE);
   const napsaEmployer = asMoney(napsaBase * NAPSA_RATE);
-
-  // NHIMA (employee + employer, each 1% of basic pay)
   const nhimaEmployee = asMoney(basicPay * NHIMA_RATE);
   const nhimaEmployer = asMoney(basicPay * NHIMA_RATE);
-
-  // Employer-only: Skills Development Levy (SDL) on gross emoluments (optional).
   const sdlEmployer = includeSdl ? asMoney(grossEmoluments * SDL_RATE_EMPLOYER) : asMoney(0);
-
   const statutoryDeductionsEmployee = asMoney(napsaEmployee + nhimaEmployee);
   const statutoryDeductionsEmployer = asMoney(napsaEmployer + nhimaEmployer + sdlEmployer);
-
   const totalDeductions = asMoney(otherDeductions + statutoryDeductionsEmployee + paye);
   const netPay = asMoney(grossEmoluments - totalDeductions);
   const employerCost = asMoney(grossEmoluments + statutoryDeductionsEmployer);
@@ -197,7 +185,6 @@ function solveBasicFromTargetNet({
   let low = 0;
   let high = Math.max(1000, targetNet * 2);
 
-  // Ensure high is high enough.
   for (let i = 0; i < 30; i++) {
     const netHigh = netFromBasic(high);
     if (netHigh >= targetNet) break;
@@ -215,76 +202,97 @@ function solveBasicFromTargetNet({
   return asMoney(high);
 }
 
-exports.handler = async (event) => {
-  const origin = event.headers?.origin || event.headers?.Origin || '';
+export default async function handler(req, res) {
+  const origin = req.headers.origin || '';
 
-  if (event.httpMethod === 'OPTIONS') return json(204, {}, origin);
-
-  if (event.httpMethod === 'GET') {
-    return json(200, {
-      ok: true,
-      calculator: 'BMAS Payroll Calculator',
-      version: '0.3.0',
-      note:
-        'This endpoint provides an estimate based on configured Zambia payroll rules. Verify bands/rates for the current tax year before using for payroll decisions.',
-      assumptions: {
-        payPeriod: 'monthly',
-        taxableIncome: 'basicPay + taxableAllowances',
-        nhimaBase: 'basicPay (employee 1% + employer 1%)',
-        napsaBase: `min(taxableIncome, ${NAPSA_CAP}) (employee 5% + employer 5%)`,
-        sdl: 'optional employer-only levy on gross emoluments (disabled by default)',
-      },
-      modes: {
-        gross: 'Gross (basic + standard taxable allowances) -> net',
-        reverse: 'Target net -> estimated gross (standard taxable allowances)',
-        forward: 'Legacy: basic + taxable allowances -> net',
-      },
-    }, origin);
+  if (req.method === 'OPTIONS') {
+    const headers = buildCorsHeaders(origin);
+    Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
+    res.status(204).end();
+    return;
   }
 
-  if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' }, origin);
+  if (req.method === 'GET') {
+    sendJson(
+      res,
+      200,
+      {
+        ok: true,
+        calculator: 'BMAS Payroll Calculator',
+        version: '0.3.0',
+        note:
+          'This endpoint provides an estimate based on configured Zambia payroll rules. Verify bands/rates for the current tax year before using for payroll decisions.',
+        assumptions: {
+          payPeriod: 'monthly',
+          taxableIncome: 'basicPay + taxableAllowances',
+          nhimaBase: 'basicPay (employee 1% + employer 1%)',
+          napsaBase: `min(taxableIncome, ${NAPSA_CAP}) (employee 5% + employer 5%)`,
+          sdl: 'optional employer-only levy on gross emoluments (disabled by default)',
+        },
+        modes: {
+          gross: 'Gross (basic + standard taxable allowances) -> net',
+          reverse: 'Target net -> estimated gross (standard taxable allowances)',
+          forward: 'Legacy: basic + taxable allowances -> net',
+        },
+      },
+      origin,
+    );
+    return;
+  }
 
-  if ((event.body || '').length > 10000) {
-    return json(413, { ok: false, error: 'Payload too large' }, origin);
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { ok: false, error: 'Method not allowed' }, origin);
+    return;
+  }
+
+  const payloadLength = typeof req.body === 'string' ? req.body.length : JSON.stringify(req.body || {}).length;
+  if (payloadLength > 10000) {
+    sendJson(res, 413, { ok: false, error: 'Payload too large' }, origin);
+    return;
   }
 
   let payload;
   try {
-    payload = event.body ? JSON.parse(event.body) : {};
+    payload = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
   } catch {
-    return json(400, { ok: false, error: 'Invalid JSON body' }, origin);
+    sendJson(res, 400, { ok: false, error: 'Invalid JSON body' }, origin);
+    return;
   }
-
-  // Back-compat: older frontend used { grossPay, allowances } to mean { basicPay, taxableAllowances }.
-  // Prefer the clearer field names when provided.
   const basicPay = asMoney(payload.basicPay ?? (payload.mode === 'gross' ? null : payload.grossPay));
   const taxableAllowances = asMoney(payload.taxableAllowances ?? payload.allowances ?? 0);
   const grossPay = asMoney(payload.grossPay);
   const nonTaxableAllowances = asMoney(payload.nonTaxableAllowances ?? 0);
   const otherDeductions = asMoney(payload.otherDeductions ?? 0);
-
   const mode = payload.mode === 'reverse' ? 'reverse' : payload.mode === 'gross' ? 'gross' : 'forward';
 
   if (mode === 'gross') {
-    if (grossPay === null || grossPay < 0) return json(400, { ok: false, error: 'grossPay must be a number >= 0' }, origin);
+    if (grossPay === null || grossPay < 0) {
+      sendJson(res, 400, { ok: false, error: 'grossPay must be a number >= 0' }, origin);
+      return;
+    }
   } else if (mode === 'forward') {
-    if (basicPay === null || basicPay < 0) return json(400, { ok: false, error: 'basicPay must be a number >= 0' }, origin);
+    if (basicPay === null || basicPay < 0) {
+      sendJson(res, 400, { ok: false, error: 'basicPay must be a number >= 0' }, origin);
+      return;
+    }
     if (taxableAllowances === null || taxableAllowances < 0) {
-      return json(400, { ok: false, error: 'taxableAllowances must be a number >= 0' }, origin);
+      sendJson(res, 400, { ok: false, error: 'taxableAllowances must be a number >= 0' }, origin);
+      return;
     }
   }
 
   if (nonTaxableAllowances === null || nonTaxableAllowances < 0) {
-    return json(400, { ok: false, error: 'nonTaxableAllowances must be a number >= 0' }, origin);
+    sendJson(res, 400, { ok: false, error: 'nonTaxableAllowances must be a number >= 0' }, origin);
+    return;
   }
   if (otherDeductions === null || otherDeductions < 0) {
-    return json(400, { ok: false, error: 'otherDeductions must be a number >= 0' }, origin);
+    sendJson(res, 400, { ok: false, error: 'otherDeductions must be a number >= 0' }, origin);
+    return;
   }
 
   const currency = payload.currency || 'ZMW';
   const disabilityCredit = Boolean(payload.disabilityCredit);
   const includeSdl = Boolean(payload.includeSdl);
-
   let computedBasicPay = basicPay;
   let computedTaxableAllowances = taxableAllowances;
   const allowanceRates = payload.allowanceRates || payload.standardAllowances || null;
@@ -293,7 +301,10 @@ exports.handler = async (event) => {
 
   if (mode === 'reverse') {
     const targetNet = asMoney(payload.targetNet);
-    if (targetNet === null || targetNet < 0) return json(400, { ok: false, error: 'targetNet must be a number >= 0' }, origin);
+    if (targetNet === null || targetNet < 0) {
+      sendJson(res, 400, { ok: false, error: 'targetNet must be a number >= 0' }, origin);
+      return;
+    }
 
     computedBasicPay = solveBasicFromTargetNet({
       targetNet,
@@ -332,12 +343,17 @@ exports.handler = async (event) => {
   results.breakdown.allowances = allowancesBreakdown;
   if (grossPayStandard !== null) results.grossPayStandard = grossPayStandard;
 
-  return json(200, {
-    ok: true,
-    mode,
-    inputs,
-    results,
-    disclaimer:
-      'Estimate only. Verify PAYE bands and statutory contribution rules for the applicable tax year before using for payroll decisions.',
-  }, origin);
-};
+  sendJson(
+    res,
+    200,
+    {
+      ok: true,
+      mode,
+      inputs,
+      results,
+      disclaimer:
+        'Estimate only. Verify PAYE bands and statutory contribution rules for the applicable tax year before using for payroll decisions.',
+    },
+    origin,
+  );
+}
