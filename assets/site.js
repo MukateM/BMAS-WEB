@@ -551,6 +551,17 @@
     render();
   }
 
+  function bindFormReset(triggerId, formId) {
+    const trigger = document.getElementById(triggerId);
+    const form = document.getElementById(formId);
+    if (!trigger || !form) return;
+    trigger.addEventListener('click', () => form.reset());
+  }
+
+  bindFormReset('clearConsult', 'consultForm');
+  bindFormReset('clearBtn', 'careersForm');
+  bindFormReset('clearPayroll', 'payrollForm');
+
   // Batman does not wait for DOM gossip.
   initJobsBoard();
 
