@@ -3,6 +3,7 @@ import { PASS_THRESHOLD, questionBank, quizLevels } from './employment-law-quiz-
 const DEMO_SESSION_KEY = 'bmas_quiz_demo_session_v1';
 const DEMO_PROFILE_KEY = 'bmas_quiz_demo_profile_v1';
 const DEMO_ATTEMPTS_KEY = 'bmas_quiz_demo_attempts_v1';
+const QUESTIONS_PER_ATTEMPT = 12;
 
 const state = {
   config: null,
@@ -16,6 +17,7 @@ const state = {
   activeQuestions: [],
   startedAt: null,
   lastResult: null,
+  aliasDraft: '',
 };
 
 const els = {};
@@ -43,6 +45,41 @@ function shuffle(items) {
   return copy;
 }
 
+function hashSeed(input) {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function createSeededRandom(seedText) {
+  let stateSeed = hashSeed(seedText) || 1;
+  return () => {
+    stateSeed = (stateSeed + 0x6d2b79f5) | 0;
+    let t = Math.imul(stateSeed ^ (stateSeed >>> 15), 1 | stateSeed);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle(items, seedText) {
+  const random = createSeededRandom(seedText);
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function selectQuestionsForAttempt(level, identitySeed, key = monthKey()) {
+  const levelQuestions = questionBank.filter((question) => question.level === level);
+  const ordered = seededShuffle(levelQuestions, `${identitySeed}:${level}:${key}`);
+  return ordered.slice(0, Math.min(QUESTIONS_PER_ATTEMPT, ordered.length));
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -56,6 +93,14 @@ function makeAlias() {
   const first = ['Copper', 'Mosi', 'Kafue', 'Luangwa', 'Savanna', 'Baobab', 'Nkana', 'Mweru', 'Unity', 'Bemba'];
   const second = ['Eagle', 'Barrister', 'Panther', 'Reader', 'Scholar', 'Hornbill', 'Bridge', 'Guardian', 'Falcon', 'Witness'];
   return `${first[Math.floor(Math.random() * first.length)]} ${second[Math.floor(Math.random() * second.length)]} ${Math.floor(100 + Math.random() * 900)}`;
+}
+
+function sanitizeAlias(value) {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[^A-Za-z0-9 .,_-]/g, '')
+    .trim()
+    .slice(0, 32);
 }
 
 function getUnlockedLevel(profile) {
@@ -185,6 +230,18 @@ function createDemoAdapter() {
       saveJson(DEMO_PROFILE_KEY, next);
       return next;
     },
+    async updateProfileAlias(userId, alias) {
+      const profile = loadJson(DEMO_PROFILE_KEY, null);
+      if (profile?.user_id !== userId) return profile;
+      const next = { ...profile, alias, updated_at: new Date().toISOString() };
+      saveJson(DEMO_PROFILE_KEY, next);
+
+      const attempts = loadJson(DEMO_ATTEMPTS_KEY, []).map((attempt) =>
+        attempt.user_id === userId ? { ...attempt, display_alias: alias } : attempt,
+      );
+      saveJson(DEMO_ATTEMPTS_KEY, attempts);
+      return next;
+    },
     async getAttempts(userId) {
       return loadJson(DEMO_ATTEMPTS_KEY, []).filter((attempt) => attempt.user_id === userId);
     },
@@ -292,6 +349,18 @@ async function createSupabaseAdapter(config) {
       if (error) throw error;
       return data;
     },
+    async updateProfileAlias(userId, alias) {
+      const { data, error } = await client
+        .from('quiz_profiles')
+        .update({ alias, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+      if (error) throw error;
+
+      await client.from('quiz_attempts').update({ display_alias: alias }).eq('user_id', userId);
+      return data;
+    },
     async getAttempts(userId) {
       const { data, error } = await client
         .from('quiz_attempts')
@@ -365,14 +434,14 @@ function renderAuthActions() {
     : `
       <button type="button" data-action="signin-google" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Continue with Google</button>
       <button type="button" data-action="signin-facebook" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Continue with Facebook</button>
-      <button type="button" data-action="signin-demo" class="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">Open demo session</button>
+      <button type="button" data-action="signin-demo" class="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">Continue</button>
     `;
   els.authActions.innerHTML = providerButtons;
 }
 
 function renderMode() {
   const isSupabase = state.adapter?.mode === 'supabase';
-  els.modeBadge.textContent = isSupabase ? 'Supabase mode' : 'Demo mode';
+  els.modeBadge.textContent = isSupabase ? 'Secure sign-in' : 'Private session';
   els.modeBadge.className = `mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
     isSupabase ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
   }`;
@@ -383,7 +452,7 @@ function renderMode() {
   } else {
     els.modeNotice.classList.remove('hidden');
     els.modeNotice.innerHTML =
-      'This browser is running the quiz in local demo mode because Supabase public credentials are not configured yet. The quiz experience works now, but shared OAuth sign-in and cross-device leaderboard data will go live after the Vercel environment variables are added.';
+      'This session is running only on this device right now. Sign-in and shared rankings become available automatically whenever the connected account service is active.';
   }
 }
 
@@ -392,7 +461,7 @@ function renderProfile() {
     els.profileCard.innerHTML = `
       <div class="text-sm text-slate-700">
         <p class="font-semibold text-slate-900">No active session</p>
-        <p class="mt-2">Sign in with Google or Facebook when Supabase is configured, or use the demo session button to test the full flow locally.</p>
+        <p class="mt-2">Sign in to save progress, unlock levels across sessions, and appear on the shared leaderboard.</p>
       </div>
     `;
     return;
@@ -404,19 +473,34 @@ function renderProfile() {
 
   els.profileCard.innerHTML = `
     <div class="grid gap-4 sm:grid-cols-3">
-      <div class="rounded-2xl border bg-white p-4">
+      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Alias</div>
         <div class="mt-2 text-lg font-bold text-slate-900">${escapeHtml(state.profile.alias)}</div>
       </div>
-      <div class="rounded-2xl border bg-white p-4">
+      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Unlocked level</div>
         <div class="mt-2 text-lg font-bold text-slate-900">Level ${unlockedLevel}</div>
       </div>
-      <div class="rounded-2xl border bg-white p-4">
+      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Attempts this month</div>
         <div class="mt-2 text-lg font-bold text-slate-900">${attemptsThisMonth.length} / 3</div>
       </div>
     </div>
+    <form id="aliasForm" class="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
+      <label for="aliasInput" class="block text-sm font-semibold text-slate-900">Leaderboard alias</label>
+      <p class="mt-1 text-sm text-slate-600">You can use your own public alias. Keep it short and non-identifying if you want more privacy.</p>
+      <div class="mt-3 flex flex-col gap-3 sm:flex-row">
+        <input
+          id="aliasInput"
+          name="alias"
+          maxlength="32"
+          value="${escapeHtml(state.aliasDraft || state.profile.alias)}"
+          class="w-full rounded-full border border-slate-300 px-4 py-2 text-sm"
+          placeholder="Enter your alias"
+        />
+        <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Save alias</button>
+      </div>
+    </form>
   `;
 }
 
@@ -440,18 +524,19 @@ function renderLevels() {
       const buttonDisabled = attempt || locked || !state.session;
 
       return `
-        <article class="rounded-2xl border ${locked ? 'bg-slate-50' : 'bg-white'} p-5 shadow-sm">
+        <article class="rounded-2xl border border-slate-200 ${locked ? 'bg-slate-50' : 'bg-white/95'} p-5 shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">${escapeHtml(item.title)}</div>
               <h3 class="mt-2 text-xl font-bold text-slate-900">${escapeHtml(item.subtitle)}</h3>
               <p class="mt-3 text-sm text-slate-600">${escapeHtml(item.description)}</p>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">${QUESTIONS_PER_ATTEMPT} questions per monthly draw</p>
             </div>
             <div class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
               attempt
                 ? attempt.passed
                   ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-slate-200 text-slate-700'
+                  : 'bg-amber-100 text-amber-900'
                 : locked
                   ? 'bg-slate-200 text-slate-600'
                   : 'bg-amber-100 text-amber-900'
@@ -477,7 +562,7 @@ function renderLeaderboard() {
   els.leaderboardMonth.textContent = formatMonthKey(monthKey());
   if (!state.leaderboard.length) {
     els.leaderboardList.innerHTML = `
-      <div class="rounded-2xl border border-dashed bg-slate-50 p-5 text-sm text-slate-600">
+      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-600">
         No scores have been posted for this month yet.
       </div>
     `;
@@ -485,7 +570,7 @@ function renderLeaderboard() {
   }
 
   els.leaderboardList.innerHTML = state.leaderboard.slice(0, 10).map((entry, index) => `
-    <div class="flex items-center justify-between gap-4 rounded-2xl border bg-slate-50 p-4">
+    <div class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
       <div class="flex items-center gap-4">
         <div class="flex h-11 w-11 items-center justify-center rounded-full ${index === 0 ? 'bg-amber-400 text-slate-900' : 'bg-slate-900 text-white'} font-bold">${index + 1}</div>
         <div>
@@ -504,7 +589,7 @@ function renderLeaderboard() {
 function renderHallOfFame() {
   if (!state.hallOfFame.length) {
     els.hallOfFameList.innerHTML = `
-      <div class="rounded-2xl border border-dashed bg-slate-50 p-5 text-sm text-slate-600">
+      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-600">
         No archived winners yet. Monthly snapshots will appear here once previous periods exist.
       </div>
     `;
@@ -512,7 +597,7 @@ function renderHallOfFame() {
   }
 
   els.hallOfFameList.innerHTML = state.hallOfFame.slice(0, 12).map((entry) => `
-    <div class="flex items-center justify-between gap-4 rounded-2xl border bg-slate-50 p-4">
+    <div class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
       <div>
         <div class="font-semibold text-slate-900">${escapeHtml(entry.display_alias)}</div>
         <div class="text-sm text-slate-500">${formatMonthKey(entry.month_key)} winner</div>
@@ -526,10 +611,28 @@ function renderHallOfFame() {
 }
 
 function renderAttemptWorkspace() {
+  if (state.lastResult && !state.activeLevel) {
+    const levelMeta = quizLevels.find((item) => item.level === state.lastResult.level);
+    els.attemptTitle.textContent = `${levelMeta?.title || 'Attempt'} completed`;
+    els.attemptMeta.textContent = state.lastResult.passed ? 'Submission complete' : 'Review your feedback';
+    els.attemptIntro.classList.remove('hidden');
+    els.attemptIntro.innerHTML = `
+      <div class="space-y-3">
+        <p class="font-semibold text-slate-900">You have finished ${escapeHtml(levelMeta?.title || 'this level')} for ${escapeHtml(formatMonthKey(monthKey()))}.</p>
+        <p>Your answers were submitted successfully. Review the detailed legal feedback in the Result panel below, and check the level cards to see whether the next level unlocked.</p>
+      </div>
+    `;
+    els.quizForm.classList.add('hidden');
+    els.quizActions.innerHTML = '';
+    return;
+  }
+
   if (!state.activeLevel) {
     els.attemptTitle.textContent = 'Your quiz workspace';
     els.attemptMeta.textContent = 'No active attempt';
     els.attemptIntro.classList.remove('hidden');
+    els.attemptIntro.innerHTML =
+      'Sign in to unlock the current month attempt window and keep your progress across levels.';
     els.quizForm.classList.add('hidden');
     els.quizActions.innerHTML = '';
     return;
@@ -542,13 +645,13 @@ function renderAttemptWorkspace() {
   els.quizForm.classList.remove('hidden');
 
   els.quizForm.innerHTML = state.activeQuestions.map((question, index) => `
-    <fieldset class="rounded-2xl border bg-slate-50 p-5">
+    <fieldset class="rounded-2xl border border-slate-200 bg-white/70 p-5">
       <legend class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Question ${index + 1}</legend>
       <p class="mt-3 text-sm text-slate-700">${escapeHtml(question.scenario)}</p>
       <h3 class="mt-4 text-lg font-semibold text-slate-900">${escapeHtml(question.question)}</h3>
       <div class="mt-4 space-y-3">
         ${question.options.map((option, optionIndex) => `
-          <label class="flex items-start gap-3 rounded-2xl border bg-white p-4 text-sm text-slate-700">
+          <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
             <input type="radio" name="question-${index}" value="${optionIndex}" class="mt-1" />
             <span>${escapeHtml(option)}</span>
           </label>
@@ -577,7 +680,7 @@ function renderResult() {
   }`;
 
   els.resultPanel.innerHTML = `
-    <div class="rounded-2xl bg-white p-5">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5">
       <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Latest score</div>
@@ -591,7 +694,7 @@ function renderResult() {
     </div>
     <div class="mt-5 space-y-4">
       ${state.lastResult.details.map((detail, index) => `
-        <article class="rounded-2xl border bg-white p-5">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5">
           <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <h3 class="font-semibold text-slate-900">Question ${index + 1}</h3>
             <div class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
@@ -646,7 +749,8 @@ function startLevel(level) {
   if (getAttemptForMonth(level, state.attempts, monthKey())) return;
 
   state.activeLevel = level;
-  state.activeQuestions = shuffle(questionBank.filter((question) => question.level === level));
+  const identitySeed = state.session?.user?.id || state.profile?.alias || 'guest';
+  state.activeQuestions = selectQuestionsForAttempt(level, identitySeed, monthKey());
   state.startedAt = Date.now();
   renderAttemptWorkspace();
 }
@@ -688,7 +792,7 @@ async function submitActiveAttempt() {
 
   try {
     await state.adapter.saveAttempt(attempt);
-    state.lastResult = summary;
+    state.lastResult = { ...summary, level: state.activeLevel, monthKey: monthKey() };
     if (summary.passed && getUnlockedLevel(state.profile) === state.activeLevel && state.activeLevel < 3) {
       state.profile = await state.adapter.updateProfileLevel(state.session.user.id, state.activeLevel + 1);
     }
@@ -739,6 +843,30 @@ async function handleAction(event) {
   }
 }
 
+async function handleAliasSubmit(event) {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || form.id !== 'aliasForm') return;
+  event.preventDefault();
+
+  if (!state.session || !state.profile) return;
+
+  const formData = new FormData(form);
+  const alias = sanitizeAlias(formData.get('alias'));
+  if (alias.length < 3) {
+    window.alert('Please enter an alias with at least 3 characters.');
+    return;
+  }
+
+  try {
+    state.profile = await state.adapter.updateProfileAlias(state.session.user.id, alias);
+    state.aliasDraft = alias;
+    await refreshData();
+    renderAll();
+  } catch (error) {
+    window.alert(error.message || 'Unable to save alias right now.');
+  }
+}
+
 async function initialize() {
   collectElements();
   state.config = await getAppConfig();
@@ -757,8 +885,10 @@ async function initialize() {
 
   state.session = await state.adapter.getSession();
   await refreshData();
+  state.aliasDraft = state.profile?.alias || '';
   renderAll();
   document.addEventListener('click', handleAction);
+  document.addEventListener('submit', handleAliasSubmit);
 }
 
 if (typeof window !== 'undefined') {

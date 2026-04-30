@@ -79,10 +79,10 @@
 </header>
 
 <main id="main" class="max-w-6xl mx-auto px-6 pt-28 pb-16 space-y-10">
-  <section class="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 text-white shadow-2xl">
+  <section class="quiz-brand-hero overflow-hidden rounded-3xl border border-slate-200 text-white shadow-2xl">
     <div class="grid gap-8 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-amber-300">BMAS Quiz Beta</p>
+        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-amber-300">BMAS Employment Law Quiz</p>
         <h1 class="mt-4 max-w-3xl text-4xl font-black leading-tight md:text-5xl">Learn Zambia employment law by solving scenarios, not memorising slogans.</h1>
         <p class="mt-5 max-w-2xl text-base text-slate-300 md:text-lg">
           Progress through three levels, unlock the next stage by passing, and review every missed answer with the relevant section of the Employment Code Act, 2019 and supporting case law where needed.
@@ -110,8 +110,8 @@
             <p class="mt-2 text-sm text-slate-300">pass mark</p>
           </div>
           <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-3xl font-black text-amber-300">12</div>
-            <p class="mt-2 text-sm text-slate-300">questions in beta bank</p>
+            <div class="text-3xl font-black text-amber-300">54</div>
+            <p class="mt-2 text-sm text-slate-300">scenario questions live</p>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@
 
   <section id="quizApp" class="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
     <div class="space-y-6">
-      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+      <section class="quiz-brand-card rounded-3xl p-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Account</p>
@@ -133,18 +133,18 @@
         <div id="profileCard" class="mt-5 rounded-2xl border bg-slate-50 p-5"></div>
       </section>
 
-      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+      <section class="quiz-brand-card rounded-3xl p-6">
         <div class="flex items-end justify-between gap-4">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Levels</p>
             <h2 class="mt-2 text-2xl font-bold text-slate-900">Choose your next challenge.</h2>
           </div>
-          <div class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">Sequential unlocks</div>
+          <div class="quiz-brand-chip rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">Sequential unlocks</div>
         </div>
         <div id="levelsGrid" class="mt-6 grid gap-4"></div>
       </section>
 
-      <section id="leaderboardPanel" class="rounded-3xl border bg-white p-6 shadow-sm">
+      <section id="leaderboardPanel" class="quiz-brand-card rounded-3xl p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Leaderboard</p>
@@ -155,7 +155,7 @@
         <div id="leaderboardList" class="mt-6 space-y-3"></div>
       </section>
 
-      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+      <section class="quiz-brand-card rounded-3xl p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Hall of Fame</p>
@@ -168,7 +168,7 @@
     </div>
 
     <div class="space-y-6">
-      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+      <section class="quiz-brand-card rounded-3xl p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Attempt</p>
@@ -177,13 +177,13 @@
           <div id="attemptMeta" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">No active attempt</div>
         </div>
         <div id="attemptIntro" class="mt-5 rounded-2xl border bg-slate-50 p-5 text-sm text-slate-700">
-          Sign in to unlock the current month attempt window. The beta app supports real Supabase mode when credentials are configured and a demo mode for local testing right away.
+          Sign in to unlock the current month attempt window and keep your progress across levels.
         </div>
         <form id="quizForm" class="mt-6 hidden space-y-6"></form>
         <div id="quizActions" class="mt-6 flex flex-wrap gap-3"></div>
       </section>
 
-      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+      <section class="quiz-brand-card rounded-3xl p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Result</p>
@@ -196,9 +196,9 @@
         </div>
       </section>
 
-      <section class="rounded-3xl border bg-slate-950 p-6 text-white shadow-sm">
+      <section class="quiz-brand-card-dark rounded-3xl p-6 text-white">
         <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Coverage</p>
-        <h2 class="mt-2 text-2xl font-bold">What the beta currently tests</h2>
+        <h2 class="mt-2 text-2xl font-bold">What the platform currently tests</h2>
         <div class="mt-6 grid gap-4 md:grid-cols-3">
           <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div class="text-sm font-semibold text-amber-300">Level One</div>
