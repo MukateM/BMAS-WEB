@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Employment Law Quiz Platform &ndash; BMAS</title>
+  <meta name="description" content="Play the BMAS Zambia employment law quiz with progressive levels, legal feedback, monthly rankings, and case-backed explanations." />
+  <link rel="canonical" href="https://bmas.vercel.app/employment-law-quiz">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="theme-color" content="#0f172a" />
+
+  <meta property="og:title" content="Employment Law Quiz Platform &ndash; BMAS">
+  <meta property="og:description" content="A BMAS learning platform for Zambian employment law with progressive levels, leaderboard play, and statute-backed feedback.">
+  <meta property="og:site_name" content="Business Momentum Advisory Services (BMAS)">
+  <meta property="og:image" content="https://bmas.vercel.app/bmas.png">
+  <meta property="og:image:alt" content="BMAS Employment Law Quiz Platform">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bmas.vercel.app/employment-law-quiz">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Employment Law Quiz Platform - BMAS">
+  <meta name="twitter:description" content="Test your knowledge of the Employment Code Act, 2019 with BMAS progressive quiz levels and legal feedback.">
+  <meta name="twitter:image" content="https://bmas.vercel.app/bmas.png">
+  <meta name="twitter:image:alt" content="BMAS Employment Law Quiz Platform">
+
+  <link rel="icon" type="image/png" href="bmas.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/site.css?v=20260430-quiz-app" />
+</head>
+
+<body class="antialiased text-gray-800 bg-gray-50 inner-brand-bg" data-page="employment-law-quiz">
+<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:bg-white focus:text-slate-900 focus:px-4 focus:py-2 focus:rounded focus:shadow">
+  Skip to content
+</a>
+
+<header class="fixed w-full z-30 bg-white/80 backdrop-blur-md border-b">
+  <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-3">
+      <img src="bmas.png" alt="BMAS logo" class="w-12 h-12 object-contain" />
+      <div>
+        <div class="text-slate-900 font-semibold">Business Momentum</div>
+        <div class="text-xs text-slate-600">Advisory Services</div>
+      </div>
+    </a>
+    <nav class="hidden md:flex gap-6 items-center text-sm" aria-label="Primary">
+      <a href="/about" class="hover:text-slate-900">About</a>
+      <a href="/services" class="hover:text-slate-900">Services</a>
+      <a href="/market" class="hover:text-slate-900">Market</a>
+      <a href="/why-us" class="hover:text-slate-900">Why Us</a>
+      <a href="/clients" class="hover:text-slate-900">Clients</a>
+      <a href="/payroll-calculator" class="hover:text-slate-900">Payroll Calculator</a>
+      <a href="/employment-law-quiz" class="text-slate-900 font-medium">Employment Law Quiz</a>
+      <a href="/careers" class="hover:text-slate-900">Careers</a>
+      <a href="/contact" class="hover:text-slate-900">Contact</a>
+      <button id="openConsultBtn" class="px-4 py-2 bg-slate-900 text-white rounded">Get Consultation</button>
+    </nav>
+    <div class="md:hidden">
+      <button id="mobileBtn" class="p-2 rounded border" aria-controls="mobileNav" aria-expanded="false" aria-label="Open menu">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+             stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="mobileNav" class="md:hidden hidden px-6 pb-4">
+    <a href="/about" class="block py-2">About</a>
+    <a href="/services" class="block py-2">Services</a>
+    <a href="/market" class="block py-2">Market</a>
+    <a href="/why-us" class="block py-2">Why Us</a>
+    <a href="/clients" class="block py-2">Clients</a>
+    <a href="/payroll-calculator" class="block py-2">Payroll Calculator</a>
+    <a href="/employment-law-quiz" class="block py-2 font-medium text-slate-900">Employment Law Quiz</a>
+    <a href="/careers" class="block py-2">Careers</a>
+    <a href="/contact" class="block py-2">Contact</a>
+    <button id="openConsultBtnMobile" class="w-full mt-2 px-4 py-2 bg-slate-900 text-white rounded">Get Consultation</button>
+  </div>
+</header>
+
+<main id="main" class="max-w-6xl mx-auto px-6 pt-28 pb-16 space-y-10">
+  <section class="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 text-white shadow-2xl">
+    <div class="grid gap-8 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-amber-300">BMAS Quiz Beta</p>
+        <h1 class="mt-4 max-w-3xl text-4xl font-black leading-tight md:text-5xl">Learn Zambia employment law by solving scenarios, not memorising slogans.</h1>
+        <p class="mt-5 max-w-2xl text-base text-slate-300 md:text-lg">
+          Progress through three levels, unlock the next stage by passing, and review every missed answer with the relevant section of the Employment Code Act, 2019 and supporting case law where needed.
+        </p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="#quizApp" class="rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow">Start quiz</a>
+          <a href="#leaderboardPanel" class="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white">View leaderboard</a>
+          <a href="/contact" class="rounded-full border border-amber-300/40 px-5 py-3 text-sm font-semibold text-amber-200">Talk to BMAS</a>
+        </div>
+      </div>
+
+      <div class="grid gap-4">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div class="text-xs uppercase tracking-[0.22em] text-slate-400">Rules</div>
+          <div class="mt-2 text-2xl font-bold">One attempt per level per calendar month</div>
+          <p class="mt-3 text-sm text-slate-300">Pass at 75 percent or above to unlock the next level. Your best monthly result is what counts for ranking.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="text-3xl font-black text-amber-300">3</div>
+            <p class="mt-2 text-sm text-slate-300">progressive levels</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="text-3xl font-black text-amber-300">75%</div>
+            <p class="mt-2 text-sm text-slate-300">pass mark</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="text-3xl font-black text-amber-300">12</div>
+            <p class="mt-2 text-sm text-slate-300">questions in beta bank</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="quizApp" class="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+    <div class="space-y-6">
+      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Account</p>
+            <h2 class="mt-2 text-2xl font-bold text-slate-900">Sign in and keep your progress.</h2>
+            <p id="modeBadge" class="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">Loading mode</p>
+          </div>
+          <div id="authActions" class="flex flex-wrap gap-3"></div>
+        </div>
+        <div id="modeNotice" class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 hidden"></div>
+        <div id="profileCard" class="mt-5 rounded-2xl border bg-slate-50 p-5"></div>
+      </section>
+
+      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Levels</p>
+            <h2 class="mt-2 text-2xl font-bold text-slate-900">Choose your next challenge.</h2>
+          </div>
+          <div class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">Sequential unlocks</div>
+        </div>
+        <div id="levelsGrid" class="mt-6 grid gap-4"></div>
+      </section>
+
+      <section id="leaderboardPanel" class="rounded-3xl border bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Leaderboard</p>
+            <h2 class="mt-2 text-2xl font-bold text-slate-900">Current month standings</h2>
+          </div>
+          <p id="leaderboardMonth" class="text-sm text-slate-500"></p>
+        </div>
+        <div id="leaderboardList" class="mt-6 space-y-3"></div>
+      </section>
+
+      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Hall of Fame</p>
+            <h2 class="mt-2 text-2xl font-bold text-slate-900">Archived winners</h2>
+          </div>
+          <p class="text-sm text-slate-500">Snapshots from previous months</p>
+        </div>
+        <div id="hallOfFameList" class="mt-6 space-y-3"></div>
+      </section>
+    </div>
+
+    <div class="space-y-6">
+      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Attempt</p>
+            <h2 id="attemptTitle" class="mt-2 text-2xl font-bold text-slate-900">Your quiz workspace</h2>
+          </div>
+          <div id="attemptMeta" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">No active attempt</div>
+        </div>
+        <div id="attemptIntro" class="mt-5 rounded-2xl border bg-slate-50 p-5 text-sm text-slate-700">
+          Sign in to unlock the current month attempt window. The beta app supports real Supabase mode when credentials are configured and a demo mode for local testing right away.
+        </div>
+        <form id="quizForm" class="mt-6 hidden space-y-6"></form>
+        <div id="quizActions" class="mt-6 flex flex-wrap gap-3"></div>
+      </section>
+
+      <section class="rounded-3xl border bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Result</p>
+            <h2 class="mt-2 text-2xl font-bold text-slate-900">Score and legal feedback</h2>
+          </div>
+          <div id="resultSummaryBadge" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">No submission yet</div>
+        </div>
+        <div id="resultPanel" class="mt-6 rounded-2xl border bg-slate-50 p-5 text-sm text-slate-700">
+          Your latest result will appear here after you submit an attempt.
+        </div>
+      </section>
+
+      <section class="rounded-3xl border bg-slate-950 p-6 text-white shadow-sm">
+        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Coverage</p>
+        <h2 class="mt-2 text-2xl font-bold">What the beta currently tests</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="text-sm font-semibold text-amber-300">Level One</div>
+            <p class="mt-2 text-sm text-slate-200">Contracts, discrimination, casualisation, probation, and leave basics.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="text-sm font-semibold text-amber-300">Level Two</div>
+            <p class="mt-2 text-sm text-slate-200">Dismissal, fair termination, notice, and gratuity questions.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="text-sm font-semibold text-amber-300">Level Three</div>
+            <p class="mt-2 text-sm text-slate-200">Redundancy, transfer, re-employment, and protected employee scenarios.</p>
+          </div>
+        </div>
+        <p class="mt-6 text-sm text-slate-300">
+          Educational disclaimer: this tool is for learning and public legal literacy. It is not a substitute for professional legal advice on a live dispute.
+        </p>
+      </section>
+    </div>
+  </section>
+</main>
+
+<div id="consultModal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="consultTitle">
+  <div class="absolute inset-0 modal-backdrop z-0" id="modalBackdrop"></div>
+  <div class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
+    <div class="flex justify-between items-center">
+      <h3 class="text-lg font-semibold" id="consultTitle">Request a Consultation</h3>
+      <button id="closeConsult" class="text-slate-600" type="button" aria-label="Close dialog">&times;</button>
+    </div>
+    <form id="consultForm" class="mt-4 space-y-3"
+          action="https://formspree.io/f/xldoyovv" method="POST" novalidate>
+      <input type="text" name="_gotcha" class="hidden" tabindex="-1" autocomplete="off" />
+      <input id="c_name" name="Full Name" required autocomplete="name" placeholder="Full Name" class="w-full rounded border px-3 py-2" />
+      <input id="c_email" name="Email" type="email" required autocomplete="email" placeholder="Email" class="w-full rounded border px-3 py-2" />
+      <input id="c_phone" name="Phone Number" required autocomplete="tel" placeholder="Phone Number" class="w-full rounded border px-3 py-2" />
+      <input id="c_company" name="Company" placeholder="Company (optional)" class="w-full rounded border px-3 py-2" />
+      <textarea id="c_message" name="Message" rows="4" placeholder="Message" class="w-full rounded border px-3 py-2"></textarea>
+      <div class="flex items-center gap-3">
+        <button type="submit" class="px-4 py-2 bg-amber-400 text-slate-900 rounded">Send</button>
+        <button id="clearConsult" type="button" class="px-4 py-2 border rounded">Clear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+<script type="module" src="assets/employment-law-quiz.js"></script>
+</body>
+</html>
