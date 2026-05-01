@@ -103,6 +103,48 @@ function sanitizeAlias(value) {
     .slice(0, 32);
 }
 
+function getUserMetadata(session) {
+  return session?.user?.user_metadata || {};
+}
+
+function getUserDisplayName(session, profile) {
+  const metadata = getUserMetadata(session);
+  return (
+    metadata.full_name ||
+    metadata.name ||
+    metadata.user_name ||
+    profile?.alias ||
+    session?.user?.email ||
+    'Quiz member'
+  );
+}
+
+function getUserEmail(session) {
+  return session?.user?.email || '';
+}
+
+function getUserAvatar(session) {
+  const metadata = getUserMetadata(session);
+  return metadata.avatar_url || metadata.picture || '';
+}
+
+function getUserInitials(session, profile) {
+  const label = getUserDisplayName(session, profile)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('');
+  return label || 'Q';
+}
+
+function getProviderLabel(session, adapterMode) {
+  if (adapterMode !== 'supabase') return 'Local session';
+  const provider = session?.user?.app_metadata?.provider;
+  if (!provider) return 'Secure account';
+  return `${provider.charAt(0).toUpperCase()}${provider.slice(1)} account`;
+}
+
 function getUnlockedLevel(profile) {
   return Math.max(1, Math.min(3, Number(profile?.current_level || 1)));
 }
@@ -283,7 +325,7 @@ function createDemoAdapter() {
 }
 
 async function createSupabaseAdapter(config) {
-  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  const { createClient } = await import('./supabase-client.js');
   const client = createClient(config.supabaseUrl, config.supabaseAnonKey, {
     auth: {
       persistSession: true,
@@ -459,9 +501,9 @@ function renderMode() {
 function renderProfile() {
   if (!state.session || !state.profile) {
     els.profileCard.innerHTML = `
-      <div class="text-sm text-slate-700">
-        <p class="font-semibold text-slate-900">No active session</p>
-        <p class="mt-2">Sign in to save progress, unlock levels across sessions, and appear on the shared leaderboard.</p>
+      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-5 text-sm text-slate-700">
+        <p class="font-semibold text-slate-900">No active profile yet</p>
+        <p class="mt-2">Sign in to create your BMAS quiz profile, keep your level progress, and show a public alias on the leaderboard.</p>
       </div>
     `;
     return;
@@ -470,25 +512,67 @@ function renderProfile() {
   const unlockedLevel = getUnlockedLevel(state.profile);
   const thisMonth = monthKey();
   const attemptsThisMonth = state.attempts.filter((attempt) => attempt.month_key === thisMonth);
+  const displayName = getUserDisplayName(state.session, state.profile);
+  const email = getUserEmail(state.session);
+  const avatarUrl = getUserAvatar(state.session);
+  const initials = getUserInitials(state.session, state.profile);
+  const providerLabel = getProviderLabel(state.session, state.adapter?.mode);
+  const completedLevels = new Set(state.attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.level)).size;
+  const remainingAttempts = Math.max(0, 3 - attemptsThisMonth.length);
+  const joinedOn = state.profile.created_at
+    ? new Date(state.profile.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'This session';
 
   els.profileCard.innerHTML = `
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Alias</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">${escapeHtml(state.profile.alias)}</div>
+    <div class="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="flex items-center gap-4">
+          ${
+            avatarUrl
+              ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" class="h-16 w-16 rounded-2xl border border-slate-200 object-cover shadow-sm" />`
+              : `<div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-xl font-black text-white shadow-sm">${escapeHtml(initials)}</div>`
+          }
+          <div>
+            <div class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">${escapeHtml(providerLabel)}</div>
+            <h3 class="mt-3 text-2xl font-black text-slate-900">${escapeHtml(displayName)}</h3>
+            <p class="mt-1 text-sm text-slate-500">${email ? escapeHtml(email) : 'Signed in and ready to play'}</p>
+          </div>
+        </div>
+        <div class="grid gap-2 text-sm text-slate-600">
+          <div class="rounded-2xl bg-slate-50 px-4 py-3">
+            <span class="font-semibold text-slate-900">Leaderboard name:</span> ${escapeHtml(state.profile.alias)}
+          </div>
+          <div class="rounded-2xl bg-slate-50 px-4 py-3">
+            <span class="font-semibold text-slate-900">Profile created:</span> ${escapeHtml(joinedOn)}
+          </div>
+        </div>
       </div>
+    </div>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Unlocked level</div>
         <div class="mt-2 text-lg font-bold text-slate-900">Level ${unlockedLevel}</div>
+        <p class="mt-1 text-xs text-slate-500">Your highest live access right now</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
+        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Passed levels</div>
+        <div class="mt-2 text-lg font-bold text-slate-900">${completedLevels} / 3</div>
+        <p class="mt-1 text-xs text-slate-500">Cleared across your recorded attempts</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Attempts this month</div>
         <div class="mt-2 text-lg font-bold text-slate-900">${attemptsThisMonth.length} / 3</div>
+        <p class="mt-1 text-xs text-slate-500">${remainingAttempts} remaining this month</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
+        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Profile status</div>
+        <div class="mt-2 text-lg font-bold text-slate-900">Active</div>
+        <p class="mt-1 text-xs text-slate-500">Your sign-in and progress are being remembered</p>
       </div>
     </div>
     <form id="aliasForm" class="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
       <label for="aliasInput" class="block text-sm font-semibold text-slate-900">Leaderboard alias</label>
-      <p class="mt-1 text-sm text-slate-600">You can use your own public alias. Keep it short and non-identifying if you want more privacy.</p>
+      <p class="mt-1 text-sm text-slate-600">This is the public name other players will see on the leaderboard. You can keep it private, or make it closer to your actual name.</p>
       <div class="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
           id="aliasInput"
@@ -628,11 +712,18 @@ function renderAttemptWorkspace() {
   }
 
   if (!state.activeLevel) {
+    const signedInName = state.session && state.profile ? getUserDisplayName(state.session, state.profile) : '';
     els.attemptTitle.textContent = 'Your quiz workspace';
     els.attemptMeta.textContent = 'No active attempt';
     els.attemptIntro.classList.remove('hidden');
-    els.attemptIntro.innerHTML =
-      'Sign in to unlock the current month attempt window and keep your progress across levels.';
+    els.attemptIntro.innerHTML = state.session && state.profile
+      ? `
+        <div class="space-y-3">
+          <p class="font-semibold text-slate-900">Welcome back, ${escapeHtml(signedInName)}.</p>
+          <p>Your profile is active, your leaderboard alias is <span class="font-semibold text-slate-900">${escapeHtml(state.profile.alias)}</span>, and you can start any level that is currently unlocked.</p>
+        </div>
+      `
+      : 'Sign in to unlock the current month attempt window and keep your progress across levels.';
     els.quizForm.classList.add('hidden');
     els.quizActions.innerHTML = '';
     return;

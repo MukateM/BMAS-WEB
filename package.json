@@ -1,0 +1,14 @@
+{
+  "name": "bmas-web",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i ./assets/tailwind-source.css -o ./assets/tailwind.css --minify",
+    "build:supabase": "esbuild ./assets/supabase-client-source.js --bundle --format=esm --platform=browser --outfile=./assets/supabase-client.js",
+    "build": "npm run build:css && npm run build:supabase"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "esbuild": "^0.28.0",
+    "tailwindcss": "^3.4.13"
+  }
+}
