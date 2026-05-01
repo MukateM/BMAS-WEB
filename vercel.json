@@ -8,7 +8,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.unsplash.com https://img.youtube.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.youtube.com; form-action 'self' https://formspree.io; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.unsplash.com https://img.youtube.com https://lh3.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.youtube.com; form-action 'self' https://formspree.io; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
         },
         {
           "key": "Referrer-Policy",
