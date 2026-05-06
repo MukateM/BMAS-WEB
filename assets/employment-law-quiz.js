@@ -174,13 +174,23 @@ async function createSupabaseAdapter(config) {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      flowType: 'pkce',
     },
   });
+
+  // Setup to track if we're in an OAuth callback
+  const isOAuthCallback = () => {
+    const { search, hash } = window.location;
+    // Check for authorization code or access token in URL
+    return search.includes('code=') || search.includes('error=') || hash.includes('access_token=') || hash.includes('error=');
+  };
 
   return {
     mode: 'supabase',
     client,
+    isOAuthCallback,
     async init() {
+      // Session will be detected from URL if present
       await client.auth.getSession();
     },
     async getSession() {
@@ -188,14 +198,22 @@ async function createSupabaseAdapter(config) {
       return data.session;
     },
     async signIn(provider) {
-      const { error } = await client.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${config.siteUrl}/employment-law-quiz`,
-        },
-      });
-      if (error) throw error;
-      return null;
+      try {
+        const { error } = await client.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: `${config.siteUrl}/employment-law-quiz`,
+          },
+        });
+        if (error) {
+          console.error('[auth] OAuth error:', { provider, message: error.message });
+          throw error;
+        }
+        // Note: signInWithOAuth causes a redirect, execution stops here
+      } catch (err) {
+        console.error('[auth] Sign in failed:', { provider, message: err.message });
+        throw err;
+      }
     },
     async signOut() {
       const { error } = await client.auth.signOut();
@@ -875,11 +893,13 @@ async function handleAction(event) {
         state.levelsVisible = true;
       } else
       if (actionName === 'signin-google') {
+        console.log('[action] Initiating Google sign-in...');
         await state.adapter.signIn('google');
-        state.session = await state.adapter.getSession();
+        // Note: Control doesn't reach here - user is redirected to Google
       } else if (actionName === 'signin-facebook') {
+        console.log('[action] Initiating Facebook sign-in...');
         await state.adapter.signIn('facebook');
-        state.session = await state.adapter.getSession();
+        // Note: Control doesn't reach here - user is redirected to Facebook
       } else if (actionName === 'signout') {
         await state.adapter.signOut();
         state.session = null;
@@ -891,6 +911,7 @@ async function handleAction(event) {
         cancelLevel();
       }
     } catch (error) {
+      console.error('[action] Error:', { action: actionName, message: error.message });
       window.alert(error.message || 'Something went wrong.');
     }
 
@@ -1140,29 +1161,60 @@ async function initialize() {
   state.config = await getAppConfig();
   state.adapter = await createSupabaseAdapter(state.config);
 
-  await state.adapter.init();
+  // Setup auth state change listener BEFORE any session operations
+  // This ensures it fires even on initial page load with OAuth callback
+  const isOAuth = state.adapter.isOAuthCallback();
+  
   if (typeof state.adapter.onAuthStateChange === 'function') {
     state.adapter.onAuthStateChange(async (session) => {
+      console.log('[auth] Session changed:', { hasSession: !!session, isOAuth });
       state.session = session;
-      await refreshData();
       
-      // Check if onboarding is needed after session changes
-      if (state.session && state.profile && !state.profile.user_type) {
-        state.needsOnboarding = true;
-      } else {
-        state.needsOnboarding = false;
+      try {
+        await refreshData();
+        
+        // Check if onboarding is needed after session changes
+        if (state.session && state.profile && !state.profile.user_type) {
+          state.needsOnboarding = true;
+        } else {
+          state.needsOnboarding = false;
+        }
+      } catch (err) {
+        console.error('[auth] Error during session refresh:', err);
       }
       
       renderAll();
     });
   }
 
+  // Initialize and get initial session
+  // This will also detect session from URL if present (OAuth callback)
+  await state.adapter.init();
   state.session = await state.adapter.getSession();
-  await refreshData();
   
-  // Check if onboarding is needed
-  if (state.session && state.profile && !state.profile.user_type) {
-    state.needsOnboarding = true;
+  console.log('[init] Page loaded:', { 
+    hasSession: !!state.session, 
+    isOAuthCallback: isOAuth,
+    url: window.location.href
+  });
+  
+  // Only do initial refresh if we already have a session
+  // The auth listener will handle session detection
+  if (state.session) {
+    try {
+      await refreshData();
+      
+      if (state.session && state.profile && !state.profile.user_type) {
+        state.needsOnboarding = true;
+      } else {
+        state.needsOnboarding = false;
+      }
+    } catch (err) {
+      console.error('[init] Error during initial refresh:', err);
+    }
+  } else if (isOAuth) {
+    // OAuth callback but no session yet - might be loading
+    console.log('[init] Waiting for OAuth session to be detected...');
   }
   
   renderAll();
