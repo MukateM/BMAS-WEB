@@ -1,9 +1,11 @@
-import { PASS_THRESHOLD, questionBank, quizLevels } from './employment-law-quiz-data.js';
+﻿import { quizLevels } from './employment-law-quiz-data.js';
 
-const DEMO_SESSION_KEY = 'bmas_quiz_demo_session_v1';
-const DEMO_PROFILE_KEY = 'bmas_quiz_demo_profile_v1';
-const DEMO_ATTEMPTS_KEY = 'bmas_quiz_demo_attempts_v1';
+const PASS_THRESHOLD = 0.75;
 const QUESTIONS_PER_ATTEMPT = 12;
+
+// Dev mode: automatically enabled on localhost:3000, or via ?devMode URL parameter
+const DEV_MODE = (window.location.hostname === 'localhost' && window.location.port === '3000')
+  || new URL(window.location).searchParams.has('devMode');
 
 const state = {
   config: null,
@@ -12,12 +14,17 @@ const state = {
   profile: null,
   attempts: [],
   leaderboard: [],
-  hallOfFame: [],
+  levelsVisible: false,
   activeLevel: null,
   activeQuestions: [],
+  attemptSessionId: null,
   startedAt: null,
   lastResult: null,
-  aliasDraft: '',
+  needsOnboarding: false,
+  submittingAttempt: false,
+  timerEndsAt: null,
+  timerInterval: null,
+  quizModalOpen: false,
 };
 
 const els = {};
@@ -36,6 +43,12 @@ function asPercent(value) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatSeconds(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 function shuffle(items) {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -45,40 +58,8 @@ function shuffle(items) {
   return copy;
 }
 
-function hashSeed(input) {
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function createSeededRandom(seedText) {
-  let stateSeed = hashSeed(seedText) || 1;
-  return () => {
-    stateSeed = (stateSeed + 0x6d2b79f5) | 0;
-    let t = Math.imul(stateSeed ^ (stateSeed >>> 15), 1 | stateSeed);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function seededShuffle(items, seedText) {
-  const random = createSeededRandom(seedText);
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function selectQuestionsForAttempt(level, identitySeed, key = monthKey()) {
-  const levelQuestions = questionBank.filter((question) => question.level === level);
-  const ordered = seededShuffle(levelQuestions, `${identitySeed}:${level}:${key}`);
-  return ordered.slice(0, Math.min(QUESTIONS_PER_ATTEMPT, ordered.length));
-}
+// Question selection and scoring are handled server-side via /api/quiz-questions and /api/quiz-submit.
+// This keeps correct_index out of the browser entirely.
 
 function escapeHtml(value) {
   return String(value)
@@ -89,20 +70,6 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function makeAlias() {
-  const first = ['Copper', 'Mosi', 'Kafue', 'Luangwa', 'Savanna', 'Baobab', 'Nkana', 'Mweru', 'Unity', 'Bemba'];
-  const second = ['Eagle', 'Barrister', 'Panther', 'Reader', 'Scholar', 'Hornbill', 'Bridge', 'Guardian', 'Falcon', 'Witness'];
-  return `${first[Math.floor(Math.random() * first.length)]} ${second[Math.floor(Math.random() * second.length)]} ${Math.floor(100 + Math.random() * 900)}`;
-}
-
-function sanitizeAlias(value) {
-  return String(value || '')
-    .replace(/\s+/g, ' ')
-    .replace(/[^A-Za-z0-9 .,_-]/g, '')
-    .trim()
-    .slice(0, 32);
-}
-
 function getUserMetadata(session) {
   return session?.user?.user_metadata || {};
 }
@@ -110,10 +77,12 @@ function getUserMetadata(session) {
 function getUserDisplayName(session, profile) {
   const metadata = getUserMetadata(session);
   return (
+    profile?.display_name ||
+    profile?.alias ||
+    profile?.full_name ||
     metadata.full_name ||
     metadata.name ||
     metadata.user_name ||
-    profile?.alias ||
     session?.user?.email ||
     'Quiz member'
   );
@@ -126,6 +95,14 @@ function getUserEmail(session) {
 function getUserAvatar(session) {
   const metadata = getUserMetadata(session);
   return metadata.avatar_url || metadata.picture || '';
+}
+
+function getAuthHeaders() {
+  const token = state.session?.access_token || '';
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
 function getUserInitials(session, profile) {
@@ -146,45 +123,24 @@ function getProviderLabel(session, adapterMode) {
 }
 
 function getUnlockedLevel(profile) {
-  return Math.max(1, Math.min(3, Number(profile?.current_level || 1)));
+  return Math.max(1, Math.min(20, Number(profile?.current_level || 1)));
 }
 
 function getAttemptForMonth(level, attempts, key = monthKey()) {
   return attempts.find((attempt) => attempt.level === level && attempt.month_key === key) || null;
 }
 
-function computeScoreSummary(questions, answers) {
-  let correctCount = 0;
-  const details = questions.map((question, index) => {
-    const selectedIndex = answers[index];
-    const isCorrect = selectedIndex === question.correctIndex;
-    if (isCorrect) correctCount += 1;
-    return {
-      id: question.id,
-      selectedIndex,
-      isCorrect,
-      question,
-    };
-  });
-  const totalQuestions = questions.length;
-  const rawScore = totalQuestions ? correctCount / totalQuestions : 0;
-  return {
-    correctCount,
-    totalQuestions,
-    rawScore,
-    passed: rawScore >= PASS_THRESHOLD,
-    details,
-  };
-}
+// Scoring is performed server-side in /api/quiz-submit.
 
 function getBestMonthlyAttempt(attempts, targetMonthKey) {
-  const bestByAlias = new Map();
+  const bestByName = new Map();
   attempts
     .filter((attempt) => attempt.month_key === targetMonthKey)
     .forEach((attempt) => {
-      const existing = bestByAlias.get(attempt.display_alias);
+      const attemptName = attempt.display_name || attempt.display_alias || 'Quiz member';
+      const existing = bestByName.get(attemptName);
       if (!existing) {
-        bestByAlias.set(attempt.display_alias, attempt);
+        bestByName.set(attemptName, { ...attempt, display_name: attemptName });
         return;
       }
 
@@ -197,11 +153,11 @@ function getBestMonthlyAttempt(attempts, targetMonthKey) {
           attempt.level === existing.level &&
           Number(attempt.duration_seconds || 0) < Number(existing.duration_seconds || 0))
       ) {
-        bestByAlias.set(attempt.display_alias, attempt);
+        bestByName.set(attemptName, { ...attempt, display_name: attemptName });
       }
     });
 
-  return Array.from(bestByAlias.values()).sort((a, b) => {
+  return Array.from(bestByName.values()).sort((a, b) => {
     if (Number(b.score) !== Number(a.score)) return Number(b.score) - Number(a.score);
     if (b.level !== a.level) return b.level - a.level;
     if (Number(a.duration_seconds || 0) !== Number(b.duration_seconds || 0)) {
@@ -209,119 +165,6 @@ function getBestMonthlyAttempt(attempts, targetMonthKey) {
     }
     return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
   });
-}
-
-function loadJson(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveJson(key, value) {
-  window.localStorage.setItem(key, JSON.stringify(value));
-}
-
-function createDemoAdapter() {
-  return {
-    mode: 'demo',
-    async init() {},
-    async getSession() {
-      return loadJson(DEMO_SESSION_KEY, null);
-    },
-    async signIn(provider) {
-      const profile = loadJson(DEMO_PROFILE_KEY, null) || {
-        user_id: 'demo-user',
-        alias: makeAlias(),
-        current_level: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      saveJson(DEMO_PROFILE_KEY, profile);
-      const session = {
-        user: {
-          id: profile.user_id,
-          app_metadata: { provider },
-        },
-      };
-      saveJson(DEMO_SESSION_KEY, session);
-      return session;
-    },
-    async signOut() {
-      window.localStorage.removeItem(DEMO_SESSION_KEY);
-    },
-    async ensureProfile(session) {
-      const existing = loadJson(DEMO_PROFILE_KEY, null);
-      if (existing) return existing;
-      const created = {
-        user_id: session.user.id,
-        alias: makeAlias(),
-        current_level: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      saveJson(DEMO_PROFILE_KEY, created);
-      return created;
-    },
-    async updateProfileLevel(userId, currentLevel) {
-      const profile = loadJson(DEMO_PROFILE_KEY, null);
-      if (profile?.user_id !== userId) return profile;
-      const next = { ...profile, current_level: currentLevel, updated_at: new Date().toISOString() };
-      saveJson(DEMO_PROFILE_KEY, next);
-      return next;
-    },
-    async updateProfileAlias(userId, alias) {
-      const profile = loadJson(DEMO_PROFILE_KEY, null);
-      if (profile?.user_id !== userId) return profile;
-      const next = { ...profile, alias, updated_at: new Date().toISOString() };
-      saveJson(DEMO_PROFILE_KEY, next);
-
-      const attempts = loadJson(DEMO_ATTEMPTS_KEY, []).map((attempt) =>
-        attempt.user_id === userId ? { ...attempt, display_alias: alias } : attempt,
-      );
-      saveJson(DEMO_ATTEMPTS_KEY, attempts);
-      return next;
-    },
-    async getAttempts(userId) {
-      return loadJson(DEMO_ATTEMPTS_KEY, []).filter((attempt) => attempt.user_id === userId);
-    },
-    async saveAttempt(attempt) {
-      const attempts = loadJson(DEMO_ATTEMPTS_KEY, []);
-      const duplicate = attempts.find(
-        (entry) => entry.user_id === attempt.user_id && entry.level === attempt.level && entry.month_key === attempt.month_key,
-      );
-      if (duplicate) {
-        throw new Error('You already submitted this level for the current month.');
-      }
-      attempts.push(attempt);
-      saveJson(DEMO_ATTEMPTS_KEY, attempts);
-      return attempt;
-    },
-    async getCurrentLeaderboard(targetMonthKey) {
-      const attempts = loadJson(DEMO_ATTEMPTS_KEY, []);
-      return getBestMonthlyAttempt(attempts, targetMonthKey);
-    },
-    async getHallOfFame(currentMonth) {
-      const attempts = loadJson(DEMO_ATTEMPTS_KEY, []);
-      const months = Array.from(new Set(attempts.map((attempt) => attempt.month_key)))
-        .filter((key) => key !== currentMonth)
-        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-      return months.slice(0, 6).map((key) => {
-        const [winner] = getBestMonthlyAttempt(attempts, key);
-        if (!winner) return null;
-        return {
-          month_key: key,
-          rank: 1,
-          display_alias: winner.display_alias,
-          score: winner.score,
-          level: winner.level,
-        };
-      }).filter(Boolean);
-    },
-  };
 }
 
 async function createSupabaseAdapter(config) {
@@ -359,27 +202,29 @@ async function createSupabaseAdapter(config) {
       if (error) throw error;
     },
     async ensureProfile(session) {
-      const userId = session.user.id;
-      const { data: existing, error: selectError } = await client
-        .from('quiz_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (selectError) throw selectError;
-      if (existing) return existing;
+      const response = await fetch('/api/quiz-profile', {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        cache: 'no-store',
+      });
 
-      const fresh = {
-        user_id: userId,
-        alias: makeAlias(),
-        current_level: 1,
-      };
-      const { data: inserted, error: insertError } = await client
-        .from('quiz_profiles')
-        .insert(fresh)
-        .select('*')
-        .single();
-      if (insertError) throw insertError;
-      return inserted;
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        let message = error.error || 'Unable to load your quiz profile right now.';
+        
+        // Include debug information if available
+        if (error.fullError) {
+          message += ` [Debug: ${error.fullError.code || error.fullError.message}]`;
+        }
+        if (error.type) {
+          message += ` (${error.type})`;
+        }
+        
+        throw new Error(message);
+      }
+
+      const payload = await response.json();
+      return payload.profile;
     },
     async updateProfileLevel(userId, currentLevel) {
       const { data, error } = await client
@@ -391,16 +236,14 @@ async function createSupabaseAdapter(config) {
       if (error) throw error;
       return data;
     },
-    async updateProfileAlias(userId, alias) {
+    async updateProfileOnboarding(userId, { userType, institution }) {
       const { data, error } = await client
         .from('quiz_profiles')
-        .update({ alias, updated_at: new Date().toISOString() })
+        .update({ user_type: userType, institution: institution || null, updated_at: new Date().toISOString() })
         .eq('user_id', userId)
         .select('*')
         .single();
       if (error) throw error;
-
-      await client.from('quiz_attempts').update({ display_alias: alias }).eq('user_id', userId);
       return data;
     },
     async getAttempts(userId) {
@@ -418,22 +261,15 @@ async function createSupabaseAdapter(config) {
       return data;
     },
     async getCurrentLeaderboard(targetMonthKey) {
-      const { data, error } = await client
-        .from('quiz_attempts')
-        .select('display_alias, score, level, duration_seconds, submitted_at, month_key')
-        .eq('month_key', targetMonthKey);
-      if (error) throw error;
-      return getBestMonthlyAttempt(data || [], targetMonthKey);
-    },
-    async getHallOfFame() {
-      const { data, error } = await client
-        .from('leaderboard_monthly_snapshot')
-        .select('*')
-        .order('month_key', { ascending: false })
-        .order('rank', { ascending: true })
-        .limit(24);
-      if (error) throw error;
-      return data || [];
+      const response = await fetch(`/api/quiz-leaderboard?monthKey=${encodeURIComponent(targetMonthKey)}`, {
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Unable to load leaderboard.');
+      }
+      const payload = await response.json();
+      return payload.leaderboard || [];
     },
     onAuthStateChange(handler) {
       return client.auth.onAuthStateChange((_event, session) => {
@@ -446,25 +282,23 @@ async function createSupabaseAdapter(config) {
 async function getAppConfig() {
   const response = await fetch('/api/quiz-config', { cache: 'no-store' });
   if (!response.ok) {
-    throw new Error(`Unable to load quiz config (${response.status})`);
+    throw new Error('Quiz configuration could not be loaded. Please contact the site administrator.');
   }
   return response.json();
 }
 
 function collectElements() {
-  els.modeBadge = document.getElementById('modeBadge');
-  els.modeNotice = document.getElementById('modeNotice');
   els.authActions = document.getElementById('authActions');
   els.profileCard = document.getElementById('profileCard');
+  els.levelsSection = document.getElementById('levelsPanel');
   els.levelsGrid = document.getElementById('levelsGrid');
   els.leaderboardMonth = document.getElementById('leaderboardMonth');
   els.leaderboardList = document.getElementById('leaderboardList');
-  els.hallOfFameList = document.getElementById('hallOfFameList');
-  els.attemptTitle = document.getElementById('attemptTitle');
-  els.attemptMeta = document.getElementById('attemptMeta');
-  els.attemptIntro = document.getElementById('attemptIntro');
-  els.quizForm = document.getElementById('quizForm');
-  els.quizActions = document.getElementById('quizActions');
+  els.quizModal = document.getElementById('quizModal');
+  els.quizModalTitle = document.getElementById('quizModalTitle');
+  els.quizModalMeta = document.getElementById('quizModalMeta');
+  els.quizForm = document.getElementById('quizModalForm');
+  els.quizActions = document.getElementById('quizModalActions');
   els.resultSummaryBadge = document.getElementById('resultSummaryBadge');
   els.resultPanel = document.getElementById('resultPanel');
 }
@@ -476,26 +310,8 @@ function renderAuthActions() {
     : `
       <button type="button" data-action="signin-google" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Continue with Google</button>
       <button type="button" data-action="signin-facebook" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Continue with Facebook</button>
-      <button type="button" data-action="signin-demo" class="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">Continue</button>
     `;
   els.authActions.innerHTML = providerButtons;
-}
-
-function renderMode() {
-  const isSupabase = state.adapter?.mode === 'supabase';
-  els.modeBadge.textContent = isSupabase ? 'Secure sign-in' : 'Private session';
-  els.modeBadge.className = `mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
-    isSupabase ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-  }`;
-
-  if (isSupabase) {
-    els.modeNotice.classList.add('hidden');
-    els.modeNotice.textContent = '';
-  } else {
-    els.modeNotice.classList.remove('hidden');
-    els.modeNotice.innerHTML =
-      'This session is running only on this device right now. Sign-in and shared rankings become available automatically whenever the connected account service is active.';
-  }
 }
 
 function renderProfile() {
@@ -503,9 +319,72 @@ function renderProfile() {
     els.profileCard.innerHTML = `
       <div class="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-5 text-sm text-slate-700">
         <p class="font-semibold text-slate-900">No active profile yet</p>
-        <p class="mt-2">Sign in to create your BMAS quiz profile, keep your level progress, and show a public alias on the leaderboard.</p>
+        <p class="mt-2">Sign in to create your BMAS quiz profile, keep your level progress, and appear on the leaderboard using your account name.</p>
       </div>
     `;
+    return;
+  }
+
+  // Onboarding flow
+  if (state.needsOnboarding) {
+    const displayName = getUserDisplayName(state.session, state.profile);
+    els.profileCard.innerHTML = `
+      <div class="rounded-3xl border border-slate-200 bg-white/95 p-6">
+        <h3 class="text-lg font-semibold text-slate-900">Complete your profile</h3>
+        <p class="mt-2 text-sm text-slate-600">Almost ready! Just a couple of quick questions to help personalize your experience.</p>
+        <form id="onboardingForm" class="mt-6 space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-900">Your name</label>
+            <div class="mt-2 rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-700">${escapeHtml(displayName)}</div>
+          </div>
+          <fieldset>
+            <legend class="block text-sm font-semibold text-slate-900 mb-3">Are you a student or employed?</legend>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="userType" value="student" required class="cursor-pointer" />
+                <span class="text-sm text-slate-700">Student</span>
+              </label>
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="userType" value="employed" required class="cursor-pointer" />
+                <span class="text-sm text-slate-700">Employed</span>
+              </label>
+            </div>
+          </fieldset>
+          <div id="institutionField" class="hidden">
+            <label for="institutionInput" class="block text-sm font-semibold text-slate-900">Institution / University / College</label>
+            <input
+              id="institutionInput"
+              name="institution"
+              type="text"
+              maxlength="100"
+              class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm"
+              placeholder="Enter your institution name"
+            />
+          </div>
+          <div class="mt-6 flex gap-3">
+            <button type="submit" class="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white">Save and continue</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    // Wire up institution field visibility
+    setTimeout(() => {
+      const form = document.getElementById('onboardingForm');
+      const institutionField = document.getElementById('institutionField');
+      const userTypeRadios = form.querySelectorAll('input[name="userType"]');
+      
+      const updateInstitutionVisibility = () => {
+        const selectedType = form.querySelector('input[name="userType"]:checked')?.value;
+        if (selectedType === 'student') {
+          institutionField.classList.remove('hidden');
+        } else {
+          institutionField.classList.add('hidden');
+        }
+      };
+      
+      userTypeRadios.forEach(radio => radio.addEventListener('change', updateInstitutionVisibility));
+    }, 0);
     return;
   }
 
@@ -518,7 +397,13 @@ function renderProfile() {
   const initials = getUserInitials(state.session, state.profile);
   const providerLabel = getProviderLabel(state.session, state.adapter?.mode);
   const completedLevels = new Set(state.attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.level)).size;
-  const remainingAttempts = Math.max(0, 3 - attemptsThisMonth.length);
+  
+  // Calculate remaining attempts based on unlocked levels not yet attempted
+  const unlockedLevelNumbers = Array.from({ length: unlockedLevel }, (_, i) => i + 1);
+  const remainingAttempts = unlockedLevelNumbers.filter(
+    lvl => !attemptsThisMonth.find(a => a.level === lvl)
+  ).length;
+  
   const joinedOn = state.profile.created_at
     ? new Date(state.profile.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : 'This session';
@@ -540,7 +425,7 @@ function renderProfile() {
         </div>
         <div class="grid gap-2 text-sm text-slate-600">
           <div class="rounded-2xl bg-slate-50 px-4 py-3">
-            <span class="font-semibold text-slate-900">Leaderboard name:</span> ${escapeHtml(state.profile.alias)}
+            <span class="font-semibold text-slate-900">Display name:</span> ${escapeHtml(state.profile.display_name || displayName)}
           </div>
           <div class="rounded-2xl bg-slate-50 px-4 py-3">
             <span class="font-semibold text-slate-900">Profile created:</span> ${escapeHtml(joinedOn)}
@@ -556,13 +441,13 @@ function renderProfile() {
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Passed levels</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">${completedLevels} / 3</div>
+        <div class="mt-2 text-lg font-bold text-slate-900">${completedLevels} / 20</div>
         <p class="mt-1 text-xs text-slate-500">Cleared across your recorded attempts</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Attempts this month</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">${attemptsThisMonth.length} / 3</div>
-        <p class="mt-1 text-xs text-slate-500">${remainingAttempts} remaining this month</p>
+        <div class="mt-2 text-lg font-bold text-slate-900">${attemptsThisMonth.length}</div>
+        <p class="mt-1 text-xs text-slate-500">${remainingAttempts} unlocked level(s) not yet attempted this month</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
         <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Profile status</div>
@@ -570,76 +455,60 @@ function renderProfile() {
         <p class="mt-1 text-xs text-slate-500">Your sign-in and progress are being remembered</p>
       </div>
     </div>
-    <form id="aliasForm" class="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
-      <label for="aliasInput" class="block text-sm font-semibold text-slate-900">Leaderboard alias</label>
-      <p class="mt-1 text-sm text-slate-600">This is the public name other players will see on the leaderboard. You can keep it private, or make it closer to your actual name.</p>
-      <div class="mt-3 flex flex-col gap-3 sm:flex-row">
-        <input
-          id="aliasInput"
-          name="alias"
-          maxlength="32"
-          value="${escapeHtml(state.aliasDraft || state.profile.alias)}"
-          class="w-full rounded-full border border-slate-300 px-4 py-2 text-sm"
-          placeholder="Enter your alias"
-        />
-        <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Save alias</button>
-      </div>
-    </form>
+    <div class="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+      Your leaderboard name is sourced from your sign-in profile to keep the competition tied to real participant identities.
+    </div>
   `;
 }
 
 function renderLevels() {
+  if (els.levelsSection) {
+    els.levelsSection.classList.toggle('hidden', !state.levelsVisible);
+  }
+
+  if (!state.levelsVisible || !els.levelsGrid) {
+    return;
+  }
+
   const unlockedLevel = getUnlockedLevel(state.profile);
   const currentMonth = monthKey();
+  
+  // Only show levels 1-3 for unauthenticated users
+  const visibleLevels = !state.session ? quizLevels.slice(0, 3) : quizLevels;
 
-  els.levelsGrid.innerHTML = quizLevels
+  els.levelsGrid.innerHTML = visibleLevels
     .map((item) => {
-      const locked = !state.profile || item.level > unlockedLevel;
+      const locked = !DEV_MODE && (!state.profile || item.level > unlockedLevel);
       const attempt = getAttemptForMonth(item.level, state.attempts, currentMonth);
-      const status = attempt
-        ? attempt.passed
-          ? `Passed ${asPercent(Number(attempt.score))}`
-          : `Used this month ${asPercent(Number(attempt.score))}`
-        : locked
-          ? 'Locked'
-          : 'Ready';
-
-      const buttonLabel = attempt ? 'Submitted this month' : locked ? 'Locked' : 'Start level';
       const buttonDisabled = attempt || locked || !state.session;
 
       return `
-        <article class="rounded-2xl border border-slate-200 ${locked ? 'bg-slate-50' : 'bg-white/95'} p-5 shadow-sm">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <div class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">${escapeHtml(item.title)}</div>
-              <h3 class="mt-2 text-xl font-bold text-slate-900">${escapeHtml(item.subtitle)}</h3>
-              <p class="mt-3 text-sm text-slate-600">${escapeHtml(item.description)}</p>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">${QUESTIONS_PER_ATTEMPT} questions per monthly draw</p>
-            </div>
-            <div class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
-              attempt
-                ? attempt.passed
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-900'
-                : locked
-                  ? 'bg-slate-200 text-slate-600'
-                  : 'bg-amber-100 text-amber-900'
-            }">${escapeHtml(status)}</div>
-          </div>
-          <div class="mt-5">
-            <button
-              type="button"
-              data-level-start="${item.level}"
-              ${buttonDisabled ? 'disabled' : ''}
-              class="rounded-full px-4 py-2 text-sm font-semibold ${
-                buttonDisabled ? 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400' : 'bg-slate-900 text-white'
-              }"
-            >${escapeHtml(buttonLabel)}</button>
-          </div>
-        </article>
+        <button
+          type="button"
+          data-level-start="${item.level}"
+          ${buttonDisabled ? 'disabled' : ''}
+          class="rounded-lg border border-slate-200 ${
+            locked ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-900 hover:bg-slate-50 hover:border-slate-300'
+          } p-3 text-lg font-medium transition-colors"
+          title="${item.subtitle}"
+        >
+          ${item.level}
+        </button>
       `;
     })
     .join('');
+  
+  // Add sign-in prompt for unauthenticated users
+  if (!state.session) {
+    els.levelsGrid.innerHTML += `
+      <div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-600 text-center">
+        Sign in to unlock and view all 20 levels.
+      </div>
+    `;
+  }
+  
+  // Update grid layout to be more compact (4-5 columns)
+  els.levelsGrid.className = 'mt-6 grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5';
 }
 
 function renderLeaderboard() {
@@ -658,7 +527,7 @@ function renderLeaderboard() {
       <div class="flex items-center gap-4">
         <div class="flex h-11 w-11 items-center justify-center rounded-full ${index === 0 ? 'bg-amber-400 text-slate-900' : 'bg-slate-900 text-white'} font-bold">${index + 1}</div>
         <div>
-          <div class="font-semibold text-slate-900">${escapeHtml(entry.display_alias)}</div>
+          <div class="font-semibold text-slate-900">${escapeHtml(entry.display_name)}</div>
           <div class="text-sm text-slate-500">Level ${entry.level}</div>
         </div>
       </div>
@@ -670,72 +539,65 @@ function renderLeaderboard() {
   `).join('');
 }
 
-function renderHallOfFame() {
-  if (!state.hallOfFame.length) {
-    els.hallOfFameList.innerHTML = `
-      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-600">
-        No archived winners yet. Monthly snapshots will appear here once previous periods exist.
-      </div>
-    `;
-    return;
+function openQuizModal() {
+  state.quizModalOpen = true;
+  if (els.quizModal) {
+    els.quizModal.classList.remove('hidden');
   }
+}
 
-  els.hallOfFameList.innerHTML = state.hallOfFame.slice(0, 12).map((entry) => `
-    <div class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
-      <div>
-        <div class="font-semibold text-slate-900">${escapeHtml(entry.display_alias)}</div>
-        <div class="text-sm text-slate-500">${formatMonthKey(entry.month_key)} winner</div>
-      </div>
-      <div class="text-right">
-        <div class="text-lg font-bold text-slate-900">${asPercent(Number(entry.score))}</div>
-        <div class="text-xs uppercase tracking-[0.18em] text-slate-500">Level ${entry.level}</div>
-      </div>
-    </div>
-  `).join('');
+function closeQuizModal() {
+  state.quizModalOpen = false;
+  if (els.quizModal) {
+    els.quizModal.classList.add('hidden');
+  }
 }
 
 function renderAttemptWorkspace() {
-  if (state.lastResult && !state.activeLevel) {
-    const levelMeta = quizLevels.find((item) => item.level === state.lastResult.level);
-    els.attemptTitle.textContent = `${levelMeta?.title || 'Attempt'} completed`;
-    els.attemptMeta.textContent = state.lastResult.passed ? 'Submission complete' : 'Review your feedback';
-    els.attemptIntro.classList.remove('hidden');
-    els.attemptIntro.innerHTML = `
-      <div class="space-y-3">
-        <p class="font-semibold text-slate-900">You have finished ${escapeHtml(levelMeta?.title || 'this level')} for ${escapeHtml(formatMonthKey(monthKey()))}.</p>
-        <p>Your answers were submitted successfully. Review the detailed legal feedback in the Result panel below, and check the level cards to see whether the next level unlocked.</p>
-      </div>
-    `;
-    els.quizForm.classList.add('hidden');
-    els.quizActions.innerHTML = '';
-    return;
-  }
-
   if (!state.activeLevel) {
-    const signedInName = state.session && state.profile ? getUserDisplayName(state.session, state.profile) : '';
-    els.attemptTitle.textContent = 'Your quiz workspace';
-    els.attemptMeta.textContent = 'No active attempt';
-    els.attemptIntro.classList.remove('hidden');
-    els.attemptIntro.innerHTML = state.session && state.profile
-      ? `
-        <div class="space-y-3">
-          <p class="font-semibold text-slate-900">Welcome back, ${escapeHtml(signedInName)}.</p>
-          <p>Your profile is active, your leaderboard alias is <span class="font-semibold text-slate-900">${escapeHtml(state.profile.alias)}</span>, and you can start any level that is currently unlocked.</p>
-        </div>
-      `
-      : 'Sign in to unlock the current month attempt window and keep your progress across levels.';
-    els.quizForm.classList.add('hidden');
-    els.quizActions.innerHTML = '';
+    closeQuizModal();
     return;
   }
 
   const levelMeta = quizLevels.find((item) => item.level === state.activeLevel);
-  els.attemptTitle.textContent = `${levelMeta.title}: ${levelMeta.subtitle}`;
-  els.attemptMeta.textContent = `${state.activeQuestions.length} questions`;
-  els.attemptIntro.classList.add('hidden');
-  els.quizForm.classList.remove('hidden');
 
-  els.quizForm.innerHTML = state.activeQuestions.map((question, index) => `
+  // Still loading questions from server
+  if (!state.activeQuestions.length) {
+    openQuizModal();
+    els.quizModalTitle.textContent = `${levelMeta.title}: ${levelMeta.subtitle}`;
+    els.quizModalMeta.textContent = 'Loading questionsâ€¦';
+    els.quizForm.innerHTML = `
+      <div class="flex items-center gap-3 text-sm text-slate-600">
+        <svg class="animate-spin h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        Fetching your question setâ€¦
+      </div>
+    `;
+    els.quizActions.innerHTML = `
+      <button type="button" data-action="cancel-attempt" class="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">Cancel</button>
+    `;
+    return;
+  }
+
+  openQuizModal();
+  els.quizModalTitle.textContent = `${levelMeta.title}: ${levelMeta.subtitle}`;
+  els.quizModalMeta.textContent = `${state.activeQuestions.length} questions`;
+
+  // Show timer if this is a timed level
+  let timerHtml = '';
+  if (levelMeta.timed && state.timerEndsAt) {
+    const secondsRemaining = Math.max(0, Math.round((state.timerEndsAt - Date.now()) / 1000));
+    timerHtml = `
+      <div id="quizTimer" class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
+        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">Time remaining</div>
+        <div class="mt-2 text-3xl font-black text-amber-600">${formatSeconds(secondsRemaining)}</div>
+      </div>
+    `;
+  }
+
+  els.quizForm.innerHTML = timerHtml + state.activeQuestions.map((question, index) => `
     <fieldset class="rounded-2xl border border-slate-200 bg-white/70 p-5">
       <legend class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Question ${index + 1}</legend>
       <p class="mt-3 text-sm text-slate-700">${escapeHtml(question.scenario)}</p>
@@ -752,7 +614,7 @@ function renderAttemptWorkspace() {
   `).join('');
 
   els.quizActions.innerHTML = `
-    <button type="button" data-action="submit-attempt" class="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Submit attempt</button>
+    <button type="button" data-action="submit-attempt" ${state.submittingAttempt ? 'disabled' : ''} class="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white ${state.submittingAttempt ? 'opacity-75 cursor-not-allowed' : ''}">${state.submittingAttempt ? 'Submitting...' : 'Submit attempt'}</button>
     <button type="button" data-action="cancel-attempt" class="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">Cancel</button>
   `;
 }
@@ -809,12 +671,10 @@ function renderResult() {
 }
 
 function renderAll() {
-  renderMode();
   renderAuthActions();
   renderProfile();
   renderLevels();
   renderLeaderboard();
-  renderHallOfFame();
   renderAttemptWorkspace();
   renderResult();
 }
@@ -824,37 +684,113 @@ async function refreshData() {
     state.profile = null;
     state.attempts = [];
     state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
-    state.hallOfFame = await state.adapter.getHallOfFame(monthKey());
     return;
   }
 
   state.profile = await state.adapter.ensureProfile(state.session);
   state.attempts = await state.adapter.getAttempts(state.session.user.id);
   state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
-  state.hallOfFame = await state.adapter.getHallOfFame(monthKey());
 }
 
-function startLevel(level) {
+async function startLevel(level) {
   if (!state.profile || !state.session) return;
-  if (level > getUnlockedLevel(state.profile)) return;
+  if (!DEV_MODE && level > getUnlockedLevel(state.profile)) return;
   if (getAttemptForMonth(level, state.attempts, monthKey())) return;
 
+  // Show loading state
   state.activeLevel = level;
-  const identitySeed = state.session?.user?.id || state.profile?.alias || 'guest';
-  state.activeQuestions = selectQuestionsForAttempt(level, identitySeed, monthKey());
-  state.startedAt = Date.now();
+  state.activeQuestions = [];
+  state.attemptSessionId = null;
+  state.startedAt = null;
+  state.submittingAttempt = false;
+  state.timerEndsAt = null;
+  if (state.timerInterval) clearInterval(state.timerInterval);
   renderAttemptWorkspace();
+
+  try {
+    const res = await fetch('/api/quiz-questions', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        level,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Failed to load questions (${res.status})`);
+    }
+
+    const { questions, attemptSessionId, expiresAt, legacyMode } = await res.json();
+    state.activeQuestions = questions;
+    state.attemptSessionId = attemptSessionId;
+    state.startedAt = Date.now();
+    
+    // Set up timer for timed levels (600 seconds = 10 minutes)
+    const levelMeta = quizLevels.find(item => item.level === level);
+    if (levelMeta?.timed && expiresAt) {
+      state.timerEndsAt = new Date(expiresAt).getTime();
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(() => {
+        const timerElement = document.getElementById('quizTimer');
+        if (timerElement && state.timerEndsAt) {
+          const secondsRemaining = Math.max(0, Math.round((state.timerEndsAt - Date.now()) / 1000));
+          const timerDisplay = timerElement.querySelector('div:last-child');
+          if (timerDisplay) {
+            timerDisplay.textContent = formatSeconds(secondsRemaining);
+          }
+          // Auto-submit when time is up
+          if (secondsRemaining <= 0) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+            submitActiveAttempt();
+          }
+        }
+      }, 500);
+    } else if (levelMeta?.timed && legacyMode) {
+      state.timerEndsAt = Date.now() + 600_000;
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(() => {
+        const timerElement = document.getElementById('quizTimer');
+        if (timerElement && state.timerEndsAt) {
+          const secondsRemaining = Math.max(0, Math.round((state.timerEndsAt - Date.now()) / 1000));
+          const timerDisplay = timerElement.querySelector('div:last-child');
+          if (timerDisplay) {
+            timerDisplay.textContent = formatSeconds(secondsRemaining);
+          }
+          if (secondsRemaining <= 0) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+            submitActiveAttempt();
+          }
+        }
+      }, 500);
+    }
+    
+    renderAttemptWorkspace();
+  } catch (err) {
+    state.activeLevel = null;
+    if (state.timerInterval) clearInterval(state.timerInterval);
+    state.timerInterval = null;
+    window.alert(err.message || 'Could not load questions right now.');
+    renderAttemptWorkspace();
+  }
 }
 
 function cancelLevel() {
   state.activeLevel = null;
   state.activeQuestions = [];
+  state.attemptSessionId = null;
   state.startedAt = null;
+  state.submittingAttempt = false;
+  state.timerEndsAt = null;
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval = null;
   renderAttemptWorkspace();
 }
 
 async function submitActiveAttempt() {
-  if (!state.activeLevel || !state.activeQuestions.length || !state.session || !state.profile) return;
+  if (!state.activeLevel || !state.activeQuestions.length || !state.session || !state.profile || state.submittingAttempt) return;
 
   const answers = state.activeQuestions.map((_question, index) => {
     const selected = document.querySelector(`input[name="question-${index}"]:checked`);
@@ -866,31 +802,65 @@ async function submitActiveAttempt() {
     return;
   }
 
-  const summary = computeScoreSummary(state.activeQuestions, answers);
-  const durationSeconds = Math.max(1, Math.round((Date.now() - state.startedAt) / 1000));
-  const attempt = {
-    user_id: state.session.user.id,
-    display_alias: state.profile.alias,
-    level: state.activeLevel,
-    month_key: monthKey(),
-    score: Number(summary.rawScore.toFixed(4)),
-    passed: summary.passed,
-    correct_count: summary.correctCount,
-    total_questions: summary.totalQuestions,
-    duration_seconds: durationSeconds,
-    submitted_at: new Date().toISOString(),
-  };
-
   try {
-    await state.adapter.saveAttempt(attempt);
-    state.lastResult = { ...summary, level: state.activeLevel, monthKey: monthKey() };
-    if (summary.passed && getUnlockedLevel(state.profile) === state.activeLevel && state.activeLevel < 3) {
-      state.profile = await state.adapter.updateProfileLevel(state.session.user.id, state.activeLevel + 1);
+    state.submittingAttempt = true;
+    renderAttemptWorkspace();
+
+    const res = await fetch('/api/quiz-submit', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        attemptSessionId: state.attemptSessionId,
+        level: state.activeLevel,
+        monthKey: monthKey(),
+        durationSeconds: Math.max(1, Math.round((Date.now() - state.startedAt) / 1000)),
+        answers,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Submission failed (${res.status})`);
     }
+
+    const result = await res.json();
+
+    // Merge question text back into details for the result panel
+    const details = result.details.map((d, i) => ({
+      ...d,
+      isCorrect:    d.is_correct,
+      selectedIndex: d.chosen_index,
+      question: {
+        ...state.activeQuestions[i],
+        correctIndex:  d.correct_index,
+        explanation:   d.explanation,
+        actReference:  d.act_reference,
+        caseReference: d.case_reference,
+        options:       state.activeQuestions[i].options,
+      },
+    }));
+
+    state.lastResult = {
+      correctCount:   result.correct_count,
+      totalQuestions: result.total_questions,
+      rawScore:       result.raw_score,
+      passed:         result.passed,
+      details,
+      level:          state.activeLevel,
+      monthKey:       monthKey(),
+    };
+
+    // Refresh profile so unlocked level updates locally
+    if (result.passed) {
+      state.profile = await state.adapter.ensureProfile(state.session);
+    }
+
     cancelLevel();
     await refreshData();
     renderAll();
   } catch (error) {
+    state.submittingAttempt = false;
+    renderAttemptWorkspace();
     window.alert(error.message || 'Unable to save your attempt right now.');
   }
 }
@@ -900,14 +870,16 @@ async function handleAction(event) {
   if (action) {
     const { action: actionName } = action.dataset;
     try {
+      if (actionName === 'show-levels') {
+        event.preventDefault();
+        state.levelsVisible = true;
+      } else
       if (actionName === 'signin-google') {
         await state.adapter.signIn('google');
         state.session = await state.adapter.getSession();
       } else if (actionName === 'signin-facebook') {
         await state.adapter.signIn('facebook');
         state.session = await state.adapter.getSession();
-      } else if (actionName === 'signin-demo') {
-        state.session = await state.adapter.signIn('demo');
       } else if (actionName === 'signout') {
         await state.adapter.signOut();
         state.session = null;
@@ -924,62 +896,285 @@ async function handleAction(event) {
 
     await refreshData();
     renderAll();
+
+    if (actionName === 'show-levels') {
+      els.levelsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     return;
   }
 
   const levelButton = event.target.closest('[data-level-start]');
   if (levelButton) {
-    startLevel(Number(levelButton.dataset.levelStart));
+    await startLevel(Number(levelButton.dataset.levelStart));
     renderAll();
   }
 }
 
-async function handleAliasSubmit(event) {
+async function handleOnboardingSubmit(event) {
   const form = event.target;
-  if (!(form instanceof HTMLFormElement) || form.id !== 'aliasForm') return;
+  if (!(form instanceof HTMLFormElement) || form.id !== 'onboardingForm') return;
   event.preventDefault();
 
   if (!state.session || !state.profile) return;
 
   const formData = new FormData(form);
-  const alias = sanitizeAlias(formData.get('alias'));
-  if (alias.length < 3) {
-    window.alert('Please enter an alias with at least 3 characters.');
+  const userType = formData.get('userType');
+  const institution = userType === 'student' ? formData.get('institution') : null;
+
+  if (!userType) {
+    window.alert('Please select whether you are a student or employed.');
+    return;
+  }
+
+  if (userType === 'student' && !institution) {
+    window.alert('Please enter your institution name.');
     return;
   }
 
   try {
-    state.profile = await state.adapter.updateProfileAlias(state.session.user.id, alias);
-    state.aliasDraft = alias;
+    state.profile = await state.adapter.updateProfileOnboarding(state.session.user.id, { userType, institution });
+    state.needsOnboarding = false;
     await refreshData();
     renderAll();
   } catch (error) {
-    window.alert(error.message || 'Unable to save alias right now.');
+    window.alert(error.message || 'Unable to complete onboarding right now.');
   }
+}
+
+function downloadLeaderboardFlyer() {
+  if (!state.leaderboard || state.leaderboard.length === 0) {
+    window.alert('No leaderboard data available to download.');
+    return;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1350;
+  const ctx = canvas.getContext('2d');
+
+  const colors = {
+    navy: '#061530',
+    teal: '#0b3f5d',
+    amber: '#f59e0b',
+    sand: '#fff7e8',
+    mist: '#eef6fb',
+    white: '#ffffff',
+    ink: '#11233f',
+    muted: '#5f728c',
+  };
+
+  const top5 = state.leaderboard.slice(0, 5);
+
+  const drawRoundedRect = (x, y, width, height, radius, fillStyle, strokeStyle = null, lineWidth = 1) => {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+
+    if (fillStyle) {
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+    }
+
+    if (strokeStyle) {
+      ctx.lineWidth = lineWidth;
+      ctx.strokeStyle = strokeStyle;
+      ctx.stroke();
+    }
+  };
+
+  const fitText = (text, maxWidth, font) => {
+    ctx.font = font;
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let trimmed = text;
+    while (trimmed.length > 3 && ctx.measureText(`${trimmed}...`).width > maxWidth) {
+      trimmed = trimmed.slice(0, -1);
+    }
+    return `${trimmed}...`;
+  };
+
+  const loadImage = (src) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+
+  const renderFlyer = (logoImg = null) => {
+    const background = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    background.addColorStop(0, '#f8fbfe');
+    background.addColorStop(0.58, colors.mist);
+    background.addColorStop(1, '#e5eef6');
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const glow = ctx.createRadialGradient(160, 140, 20, 160, 140, 300);
+    glow.addColorStop(0, 'rgba(245, 158, 11, 0.18)');
+    glow.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'rgba(11, 63, 93, 0.06)';
+    for (let i = 0; i < 7; i += 1) {
+      const y = 130 + (i * 170);
+      ctx.fillRect(72, y, canvas.width - 144, 1);
+    }
+
+    drawRoundedRect(60, 52, canvas.width - 120, 300, 34, colors.white, 'rgba(6, 21, 48, 0.08)', 2);
+    drawRoundedRect(60, 52, canvas.width - 120, 16, 16, colors.amber);
+    drawRoundedRect(90, 92, 118, 118, 28, colors.sand, 'rgba(245, 158, 11, 0.18)', 2);
+
+    if (logoImg) {
+      ctx.drawImage(logoImg, 110, 112, 78, 78);
+    } else {
+      ctx.fillStyle = colors.navy;
+      ctx.font = 'bold 34px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('BMAS', 149, 161);
+    }
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = colors.teal;
+    ctx.font = '600 18px Georgia, serif';
+    ctx.fillText('Business Momentum Advisory Services', 236, 128);
+
+    ctx.fillStyle = colors.navy;
+    ctx.font = 'bold 48px Georgia, serif';
+    ctx.fillText('Employment Law Quiz', 236, 182);
+
+    ctx.fillStyle = colors.muted;
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillText('Monthly leaderboard snapshot for top performers', 236, 218);
+
+    drawRoundedRect(236, 246, 244, 46, 23, colors.mist);
+    ctx.fillStyle = colors.ink;
+    ctx.font = 'bold 22px Arial, sans-serif';
+    ctx.fillText(formatMonthKey(monthKey()), 262, 276);
+
+    ctx.fillStyle = colors.amber;
+    ctx.font = 'bold 18px Arial, sans-serif';
+    ctx.fillText('Top 5 leaders', 90, 414);
+
+    ctx.fillStyle = colors.muted;
+    ctx.font = '16px Arial, sans-serif';
+    ctx.fillText('Best score each month ranks first, then level reached and time used.', 90, 442);
+
+    let yPos = 484;
+    top5.forEach((entry, index) => {
+      const isFirst = index === 0;
+      const cardFill = isFirst ? colors.navy : 'rgba(255, 255, 255, 0.92)';
+      const cardStroke = isFirst ? 'rgba(245, 158, 11, 0.35)' : 'rgba(6, 21, 48, 0.08)';
+
+      drawRoundedRect(76, yPos, canvas.width - 152, 128, 28, cardFill, cardStroke, 2);
+      drawRoundedRect(96, yPos + 28, 72, 72, 24, isFirst ? colors.amber : colors.sand);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isFirst ? colors.navy : colors.teal;
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillText(String(index + 1), 132, yPos + 76);
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = isFirst ? colors.white : colors.navy;
+      ctx.font = 'bold 28px Georgia, serif';
+      ctx.fillText(fitText(entry.display_name, 420, 'bold 28px Georgia, serif'), 198, yPos + 52);
+
+      ctx.fillStyle = isFirst ? 'rgba(255, 255, 255, 0.78)' : colors.muted;
+      ctx.font = '16px Arial, sans-serif';
+      ctx.fillText(`Level ${entry.level} completed`, 198, yPos + 82);
+
+      drawRoundedRect(760, yPos + 24, 228, 80, 24, isFirst ? 'rgba(255, 255, 255, 0.12)' : colors.mist);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = isFirst ? colors.amber : colors.navy;
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillText(asPercent(Number(entry.score)), 958, yPos + 58);
+
+      ctx.fillStyle = isFirst ? 'rgba(255, 255, 255, 0.78)' : colors.teal;
+      ctx.font = '15px Arial, sans-serif';
+      ctx.fillText(`${Math.round(Number(entry.duration_seconds || 0))} seconds`, 958, yPos + 84);
+
+      yPos += 145;
+    });
+
+    drawRoundedRect(60, canvas.height - 132, canvas.width - 120, 72, 28, colors.white, 'rgba(6, 21, 48, 0.08)', 2);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = colors.navy;
+    ctx.font = 'bold 18px Arial, sans-serif';
+    ctx.fillText('Zambian Employment Law Mastery', 92, canvas.height - 87);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = colors.muted;
+    ctx.font = '16px Arial, sans-serif';
+    ctx.fillText('One attempt per level each month 75% pass mark BMAS', canvas.width - 92, canvas.height - 87);
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        window.alert('Could not generate the leaderboard flyer right now.');
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `BMAS-Leaderboard-${new Date().toISOString().split('T')[0]}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 'image/jpeg', 0.95);
+  };
+
+  loadImage('bmas.png')
+    .then((logoImg) => renderFlyer(logoImg))
+    .catch(() => renderFlyer());
 }
 
 async function initialize() {
   collectElements();
   state.config = await getAppConfig();
-  state.adapter = state.config.supabaseConfigured
-    ? await createSupabaseAdapter(state.config)
-    : createDemoAdapter();
+  state.adapter = await createSupabaseAdapter(state.config);
 
   await state.adapter.init();
   if (typeof state.adapter.onAuthStateChange === 'function') {
     state.adapter.onAuthStateChange(async (session) => {
       state.session = session;
       await refreshData();
+      
+      // Check if onboarding is needed after session changes
+      if (state.session && state.profile && !state.profile.user_type) {
+        state.needsOnboarding = true;
+      } else {
+        state.needsOnboarding = false;
+      }
+      
       renderAll();
     });
   }
 
   state.session = await state.adapter.getSession();
   await refreshData();
-  state.aliasDraft = state.profile?.alias || '';
+  
+  // Check if onboarding is needed
+  if (state.session && state.profile && !state.profile.user_type) {
+    state.needsOnboarding = true;
+  }
+  
   renderAll();
+  
+  // Wire up download flyer button
+  const downloadFlyerBtn = document.getElementById('downloadFlyerBtn');
+  if (downloadFlyerBtn) {
+    downloadFlyerBtn.addEventListener('click', downloadLeaderboardFlyer);
+  }
+  
   document.addEventListener('click', handleAction);
-  document.addEventListener('submit', handleAliasSubmit);
+  document.addEventListener('submit', handleOnboardingSubmit);
 }
 
 if (typeof window !== 'undefined') {

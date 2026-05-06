@@ -1,1 +1,9 @@
 node_modules/
+
+.vercel
+.env*.local
+.migration/
+.dist/   
+.migrations.sql
+.coverage/
+*.log

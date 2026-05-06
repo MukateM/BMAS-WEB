@@ -78,42 +78,41 @@
   </div>
 </header>
 
-<main id="main" class="max-w-6xl mx-auto px-6 pt-28 pb-16 space-y-10">
+<main id="main" class="max-w-6xl mx-auto px-6 pt-20 pb-14 space-y-8">
   <section class="quiz-brand-hero overflow-hidden rounded-3xl border border-slate-200 text-white shadow-2xl">
-    <div class="grid gap-8 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-      <div>
-        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-amber-300">BMAS Employment Law Quiz</p>
-        <h1 class="mt-4 max-w-3xl text-4xl font-black leading-tight md:text-5xl">Learn Zambia employment law by solving scenarios, not memorising slogans.</h1>
-        <p class="mt-5 max-w-2xl text-base text-slate-300 md:text-lg">
-          Progress through three levels, unlock the next stage by passing, and review every missed answer with the relevant section of the Employment Code Act, 2019 and supporting case law where needed.
-        </p>
-        <div class="mt-7 flex flex-wrap gap-3">
-          <a href="#quizApp" class="rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow">Start quiz</a>
-          <a href="#leaderboardPanel" class="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white">View leaderboard</a>
-          <a href="/contact" class="rounded-full border border-amber-300/40 px-5 py-3 text-sm font-semibold text-amber-200">Talk to BMAS</a>
+    <div class="px-6 py-10 md:px-10 md:py-12 flex flex-col items-center text-center">
+      <!-- Title Section -->
+      <div class="mb-8 max-w-2xl">
+        <p class="text-base md:text-lg text-slate-200">Master Zambian employment law through scenario-based learning</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid gap-3 md:gap-4 sm:grid-cols-3 w-full mb-8 max-w-3xl">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition">
+          <div class="text-3xl md:text-4xl font-black text-amber-300 mb-1">20</div>
+          <p class="text-sm text-slate-300 font-medium">Progressive Levels</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition">
+          <div class="text-3xl md:text-4xl font-black text-amber-300 mb-1">75%</div>
+          <p class="text-sm text-slate-300 font-medium">Pass Mark</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition">
+          <div class="text-3xl md:text-4xl font-black text-amber-300 mb-1">1</div>
+          <p class="text-sm text-slate-300 font-medium">Attempt Per Month</p>
         </div>
       </div>
 
-      <div class="grid gap-4">
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <div class="text-xs uppercase tracking-[0.22em] text-slate-400">Rules</div>
-          <div class="mt-2 text-2xl font-bold">One attempt per level per calendar month</div>
-          <p class="mt-3 text-sm text-slate-300">Pass at 75 percent or above to unlock the next level. Your best monthly result is what counts for ranking.</p>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-3">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-3xl font-black text-amber-300">3</div>
-            <p class="mt-2 text-sm text-slate-300">progressive levels</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-3xl font-black text-amber-300">75%</div>
-            <p class="mt-2 text-sm text-slate-300">pass mark</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-3xl font-black text-amber-300">54</div>
-            <p class="mt-2 text-sm text-slate-300">scenario questions live</p>
-          </div>
-        </div>
+      <!-- Rules Section -->
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-5 mb-8 w-full max-w-3xl">
+        <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold mb-2">How It Works</p>
+        <p class="text-sm md:text-base text-slate-200 leading-relaxed">One attempt per level per calendar month. Pass at 75% or above to unlock the next level. Your best monthly result counts for ranking. Review every answer with statute references and case law.</p>
+      </div>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="#levelsPanel" data-action="show-levels" class="rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 shadow hover:bg-amber-300 transition">Start Quiz</a>
+        <a href="#leaderboardPanel" class="rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition">View Leaderboard</a>
+        <a href="/contact" class="rounded-full border border-amber-300/40 px-6 py-3 text-sm font-semibold text-amber-200 hover:border-amber-300/60 transition">Contact BMAS</a>
       </div>
     </div>
   </section>
@@ -125,15 +124,13 @@
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Account</p>
             <h2 class="mt-2 text-2xl font-bold text-slate-900">Your quiz profile and saved progress.</h2>
-            <p id="modeBadge" class="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">Loading mode</p>
           </div>
           <div id="authActions" class="flex flex-wrap gap-3"></div>
         </div>
-        <div id="modeNotice" class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 hidden"></div>
         <div id="profileCard" class="mt-5 rounded-2xl border bg-slate-50 p-5"></div>
       </section>
 
-      <section class="quiz-brand-card rounded-3xl p-6">
+      <section id="levelsPanel" class="quiz-brand-card rounded-3xl p-6 hidden">
         <div class="flex items-end justify-between gap-4">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Levels</p>
@@ -150,39 +147,17 @@
             <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Leaderboard</p>
             <h2 class="mt-2 text-2xl font-bold text-slate-900">Current month standings</h2>
           </div>
-          <p id="leaderboardMonth" class="text-sm text-slate-500"></p>
+          <div class="flex items-center gap-3">
+            <p id="leaderboardMonth" class="text-sm text-slate-500"></p>
+            <button id="downloadFlyerBtn" class="rounded px-3 py-2 text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 transition">Download Flyer</button>
+          </div>
         </div>
         <div id="leaderboardList" class="mt-6 space-y-3"></div>
       </section>
 
-      <section class="quiz-brand-card rounded-3xl p-6">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Hall of Fame</p>
-            <h2 class="mt-2 text-2xl font-bold text-slate-900">Archived winners</h2>
-          </div>
-          <p class="text-sm text-slate-500">Snapshots from previous months</p>
-        </div>
-        <div id="hallOfFameList" class="mt-6 space-y-3"></div>
-      </section>
     </div>
 
     <div class="space-y-6">
-      <section class="quiz-brand-card rounded-3xl p-6">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Attempt</p>
-            <h2 id="attemptTitle" class="mt-2 text-2xl font-bold text-slate-900">Your quiz workspace</h2>
-          </div>
-          <div id="attemptMeta" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">No active attempt</div>
-        </div>
-        <div id="attemptIntro" class="mt-5 rounded-2xl border bg-slate-50 p-5 text-sm text-slate-700">
-          Sign in to unlock the current month attempt window and keep your progress across levels.
-        </div>
-        <form id="quizForm" class="mt-6 hidden space-y-6"></form>
-        <div id="quizActions" class="mt-6 flex flex-wrap gap-3"></div>
-      </section>
-
       <section class="quiz-brand-card rounded-3xl p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -196,30 +171,28 @@
         </div>
       </section>
 
-      <section class="quiz-brand-card-dark rounded-3xl p-6 text-white">
-        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Coverage</p>
-        <h2 class="mt-2 text-2xl font-bold">What the platform currently tests</h2>
-        <div class="mt-6 grid gap-4 md:grid-cols-3">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-sm font-semibold text-amber-300">Level One</div>
-            <p class="mt-2 text-sm text-slate-200">Contracts, discrimination, casualisation, probation, and leave basics.</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-sm font-semibold text-amber-300">Level Two</div>
-            <p class="mt-2 text-sm text-slate-200">Dismissal, fair termination, notice, and gratuity questions.</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-sm font-semibold text-amber-300">Level Three</div>
-            <p class="mt-2 text-sm text-slate-200">Redundancy, transfer, re-employment, and protected employee scenarios.</p>
-          </div>
-        </div>
-        <p class="mt-6 text-sm text-slate-300">
-          Educational disclaimer: this tool is for learning and public legal literacy. It is not a substitute for professional legal advice on a live dispute.
-        </p>
-      </section>
     </div>
   </section>
 </main>
+
+<div id="quizModal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
+  <div class="absolute inset-0 bg-black/50 z-0" id="quizModalBackdrop"></div>
+  <div class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+    <div class="flex justify-between items-start gap-4 mb-4">
+      <div>
+        <h3 id="quizModalTitle" class="text-xl font-bold text-slate-900">Quiz</h3>
+        <p id="quizModalMeta" class="mt-1 text-sm text-slate-600">Loading…</p>
+      </div>
+      <button type="button" data-action="cancel-attempt" class="text-slate-400 hover:text-slate-600 flex-shrink-0" aria-label="Close dialog">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <form id="quizModalForm" class="space-y-6"></form>
+    <div id="quizModalActions" class="mt-6 flex flex-wrap gap-3"></div>
+  </div>
+</div>
 
 <div id="consultModal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="consultTitle">
   <div class="absolute inset-0 modal-backdrop z-0" id="modalBackdrop"></div>
