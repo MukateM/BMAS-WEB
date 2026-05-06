@@ -12,6 +12,7 @@ const state = {
   adapter: null,
   session: null,
   profile: null,
+  authMessage: '',
   attempts: [],
   leaderboard: [],
   levelsVisible: false,
@@ -115,6 +116,30 @@ function getUserInitials(session, profile) {
   return label || 'Q';
 }
 
+function getCurrentQuizUrl() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function parseOAuthCallbackError() {
+  const url = new URL(window.location.href);
+  const searchError = url.searchParams.get('error');
+  const searchDescription = url.searchParams.get('error_description');
+
+  const hashParams = new URLSearchParams((url.hash || '').replace(/^#/, ''));
+  const hashError = hashParams.get('error');
+  const hashDescription = hashParams.get('error_description');
+
+  const error = searchError || hashError || '';
+  const description = searchDescription || hashDescription || '';
+
+  if (!error && !description) return '';
+
+  return [error, description]
+    .filter(Boolean)
+    .join(': ')
+    .replace(/\+/g, ' ');
+}
+
 function getProviderLabel(session, adapterMode) {
   if (adapterMode !== 'supabase') return 'Local session';
   const provider = session?.user?.app_metadata?.provider;
@@ -202,7 +227,7 @@ async function createSupabaseAdapter(config) {
         const { error } = await client.auth.signInWithOAuth({
           provider,
           options: {
-            redirectTo: `${config.siteUrl}/employment-law-quiz`,
+            redirectTo: getCurrentQuizUrl(),
           },
         });
         if (error) {
@@ -338,6 +363,7 @@ function renderProfile() {
       <div class="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-5 text-sm text-slate-700">
         <p class="font-semibold text-slate-900">No active profile yet</p>
         <p class="mt-2">Sign in to create your BMAS quiz profile, keep your level progress, and appear on the leaderboard using your account name.</p>
+        ${state.authMessage ? `<p class="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">${escapeHtml(state.authMessage)}</p>` : ''}
       </div>
     `;
     return;
@@ -1160,6 +1186,7 @@ async function initialize() {
   collectElements();
   state.config = await getAppConfig();
   state.adapter = await createSupabaseAdapter(state.config);
+  state.authMessage = parseOAuthCallbackError();
 
   // Setup auth state change listener BEFORE any session operations
   // This ensures it fires even on initial page load with OAuth callback
@@ -1169,6 +1196,9 @@ async function initialize() {
     state.adapter.onAuthStateChange(async (session) => {
       console.log('[auth] Session changed:', { hasSession: !!session, isOAuth });
       state.session = session;
+      if (session) {
+        state.authMessage = '';
+      }
       
       try {
         await refreshData();
@@ -1215,6 +1245,31 @@ async function initialize() {
   } else if (isOAuth) {
     // OAuth callback but no session yet - might be loading
     console.log('[init] Waiting for OAuth session to be detected...');
+    window.setTimeout(async () => {
+      const delayedSession = await state.adapter.getSession();
+      console.log('[init] Delayed OAuth session check:', { hasSession: !!delayedSession });
+
+      if (delayedSession) {
+        state.session = delayedSession;
+        state.authMessage = '';
+
+        try {
+          await refreshData();
+          if (state.session && state.profile && !state.profile.user_type) {
+            state.needsOnboarding = true;
+          } else {
+            state.needsOnboarding = false;
+          }
+        } catch (err) {
+          console.error('[init] Error during delayed refresh:', err);
+          state.authMessage = err.message || 'Sign-in completed, but we could not finish loading your quiz profile.';
+        }
+      } else if (!state.authMessage) {
+        state.authMessage = 'Sign-in did not finish correctly. Please try again, and confirm the OAuth redirect URL in Supabase matches this page exactly.';
+      }
+
+      renderAll();
+    }, 1200);
   }
   
   renderAll();
