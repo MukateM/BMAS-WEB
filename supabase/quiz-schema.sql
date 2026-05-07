@@ -34,6 +34,19 @@ create table if not exists public.quiz_profiles (
 
 create index if not exists quiz_profiles_display_name_idx on public.quiz_profiles(display_name);
 
+create table if not exists public.quiz_manual_users (
+  auth_user_id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  password_hash text not null,
+  full_name text not null,
+  user_type text not null check (user_type in ('student', 'employed')),
+  institution text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists quiz_manual_users_email_key on public.quiz_manual_users(lower(email));
+
 create table if not exists public.quiz_attempt_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.quiz_profiles(user_id) on delete cascade,
@@ -97,6 +110,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists quiz_questions_set_updated_at on public.quiz_questions;
 create trigger quiz_questions_set_updated_at
 before update on public.quiz_questions
+for each row execute function public.set_updated_at();
+
+drop trigger if exists quiz_manual_users_set_updated_at on public.quiz_manual_users;
+create trigger quiz_manual_users_set_updated_at
+before update on public.quiz_manual_users
 for each row execute function public.set_updated_at();
 
 alter table public.quiz_questions enable row level security;

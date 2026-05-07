@@ -1,4 +1,5 @@
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
+import { normalizeUserTypeForDb, sanitizeProfile } from './_lib/quiz-auth.js';
 
 function buildDisplayName(user) {
   return (
@@ -56,10 +57,10 @@ export default async function handler(req, res) {
         if (updateError) {
           if (String(updateError.message || '').includes('display_name')) {
             return res.status(200).json({
-              profile: {
+              profile: sanitizeProfile({
                 ...existing,
                 display_name: existing.full_name || existing.alias || displayName,
-              },
+              }),
             });
           }
           throw updateError;
@@ -68,7 +69,7 @@ export default async function handler(req, res) {
         existing = updated;
       }
 
-      return res.status(200).json({ profile: existing });
+      return res.status(200).json({ profile: sanitizeProfile(existing) });
     }
 
     const fresh = {
@@ -76,6 +77,8 @@ export default async function handler(req, res) {
       display_name: displayName,
       full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
       email: user.email || '',
+      user_type: user.user_metadata?.user_type ? normalizeUserTypeForDb(user.user_metadata.user_type) : null,
+      institution: user.user_metadata?.institution_name || '',
       current_level: 1,
     };
 
@@ -101,10 +104,10 @@ export default async function handler(req, res) {
         .single();
 
       inserted = legacyInsert.data
-        ? {
+        ? sanitizeProfile({
             ...legacyInsert.data,
             display_name: legacyInsert.data.full_name || legacyInsert.data.alias || displayName,
-          }
+          })
         : null;
       insertError = legacyInsert.error;
     }
@@ -119,7 +122,7 @@ export default async function handler(req, res) {
       throw insertError;
     }
 
-    return res.status(200).json({ profile: inserted });
+    return res.status(200).json({ profile: sanitizeProfile(inserted) });
   } catch (err) {
     console.error('[quiz-profile] Error:', {
       message: err?.message,

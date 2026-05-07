@@ -1,4 +1,6 @@
+// Updated quiz-leaderboard.js
 import { getQuizAdminClient } from './_lib/quiz-env.js';
+import { normalizeUserTypeForClient } from './_lib/quiz-auth.js';
 
 function monthKey(value = new Date()) {
   const date = new Date(value);
@@ -11,10 +13,11 @@ function pickBestAttempts(attempts, targetMonthKey) {
   attempts
     .filter((attempt) => attempt.month_key === targetMonthKey)
     .forEach((attempt) => {
-      const attemptName = attempt.display_name || attempt.display_alias || 'Quiz member';
-      const existing = bestByName.get(attemptName);
+      const attemptKey = attempt.user_id;
+      const existing = bestByName.get(attemptKey);
+      
       if (!existing) {
-        bestByName.set(attemptName, { ...attempt, display_name: attemptName });
+        bestByName.set(attemptKey, { ...attempt });
         return;
       }
 
@@ -27,7 +30,7 @@ function pickBestAttempts(attempts, targetMonthKey) {
           attempt.level === existing.level &&
           Number(attempt.duration_seconds || 0) < Number(existing.duration_seconds || 0))
       ) {
-        bestByName.set(attemptName, { ...attempt, display_name: attemptName });
+        bestByName.set(attemptKey, { ...attempt });
       }
     });
 
@@ -59,35 +62,99 @@ export default async function handler(req, res) {
   }
 
   const targetMonthKey = String(req.query.monthKey || monthKey());
+  const limit = parseInt(req.query.limit) || 10;
 
   try {
-    let { data, error } = await sb
+    // First get attempts
+    let { data: attempts, error: attemptsError } = await sb
       .from('quiz_attempts')
-      .select('display_name, score, level, duration_seconds, submitted_at, month_key')
+      .select('user_id, display_name, score, level, duration_seconds, submitted_at, month_key')
       .eq('month_key', targetMonthKey);
 
-    if (error && String(error.message || '').includes('display_name')) {
+    if (attemptsError) {
+      // Try legacy format
       const legacyResult = await sb
         .from('quiz_attempts')
-        .select('display_alias, score, level, duration_seconds, submitted_at, month_key')
+        .select('user_id, display_alias, score, level, duration_seconds, submitted_at, month_key')
         .eq('month_key', targetMonthKey);
-      data = legacyResult.data;
-      error = legacyResult.error;
+      attempts = legacyResult.data;
+      attemptsError = legacyResult.error;
     }
 
-    if (error) throw error;
+    if (attemptsError) throw attemptsError;
+
+    if (!attempts || attempts.length === 0) {
+      return res.status(200).json({ leaderboard: [] });
+    }
+
+    // Get user profiles for the relevant users
+    const userIds = [...new Set(attempts.map(a => a.user_id))];
+    let { data: profiles, error: profilesError } = await sb
+      .from('quiz_profiles')
+      .select('user_id, display_name, institution, user_type')
+      .in('user_id', userIds);
+
+    if (profilesError && String(profilesError.message || '').includes('display_name')) {
+      const legacyProfilesResult = await sb
+        .from('quiz_profiles')
+        .select('user_id, alias, full_name, institution_name, user_type')
+        .in('user_id', userIds);
+      profiles = legacyProfilesResult.data;
+      profilesError = legacyProfilesResult.error;
+    }
+
+    if (profilesError) {
+      console.error('[quiz-leaderboard] Profile fetch error:', profilesError);
+      // Continue without profiles
+    }
+
+    // Create profile lookup map
+    const profileMap = new Map();
+    if (profiles) {
+      profiles.forEach(profile => {
+        profileMap.set(profile.user_id, profile);
+      });
+    }
+
+    // Enrich attempts with profile data
+    const enrichedAttempts = attempts.map(attempt => {
+      const profile = profileMap.get(attempt.user_id);
+      const normalizedUserType = profile?.user_type
+        ? normalizeUserTypeForClient(profile.user_type)
+        : 'employee';
+      return {
+        ...attempt,
+        display_name:
+          profile?.display_name ||
+          profile?.full_name ||
+          profile?.alias ||
+          attempt.display_name ||
+          attempt.display_alias ||
+          'Quiz member',
+        institution_name: profile?.institution || profile?.institution_name || 'Not specified',
+        user_type: normalizedUserType,
+      };
+    });
+
+    const leaderboard = pickBestAttempts(enrichedAttempts, targetMonthKey).slice(0, limit);
+    
+    // Format leaderboard entries
+    const formattedLeaderboard = leaderboard.map((entry, index) => ({
+      rank: index + 1,
+      name: entry.display_name,
+      institution: entry.institution_name,
+      userType: entry.user_type,
+      score: parseFloat((Number(entry.score) * 100).toFixed(1)),
+      level: entry.level,
+      duration: entry.duration_seconds
+    }));
 
     return res.status(200).json({
-      leaderboard: pickBestAttempts(data || [], targetMonthKey).slice(0, 10),
+      leaderboard: formattedLeaderboard,
+      month: targetMonthKey
     });
   } catch (err) {
-    console.error('[quiz-leaderboard] Error:', {
-      message: err?.message,
-      code: err?.code,
-      status: err?.status,
-      details: err?.details,
-      hint: err?.hint,
-    });
+    console.error('[quiz-leaderboard] Error:', err);
     return res.status(500).json({ error: 'Unable to load the leaderboard right now.' });
   }
 }

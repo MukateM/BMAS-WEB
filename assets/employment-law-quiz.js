@@ -1,9 +1,8 @@
 ﻿import { quizLevels } from './employment-law-quiz-data.js';
-
 const PASS_THRESHOLD = 0.75;
 const QUESTIONS_PER_ATTEMPT = 12;
+const MANUAL_SESSION_STORAGE_KEY = 'quizSession';
 
-// Dev mode: automatically enabled on localhost:3000, or via ?devMode URL parameter
 const DEV_MODE = (window.location.hostname === 'localhost' && window.location.port === '3000')
   || new URL(window.location).searchParams.has('devMode');
 
@@ -12,6 +11,7 @@ const state = {
   adapter: null,
   session: null,
   profile: null,
+  isRefreshing: false,
   authMessage: '',
   attempts: [],
   leaderboard: [],
@@ -141,6 +141,7 @@ function parseOAuthCallbackError() {
 }
 
 function getProviderLabel(session, adapterMode) {
+  if (window.quizManualAuth?.isAuthenticated?.()) return '';
   if (adapterMode !== 'supabase') return 'Local session';
   const provider = session?.user?.app_metadata?.provider;
   if (!provider) return 'Secure account';
@@ -215,7 +216,19 @@ async function createSupabaseAdapter(config) {
     client,
     isOAuthCallback,
     async init() {
-      // Session will be detected from URL if present
+      const storedManualSession = readStoredManualSession();
+      if (storedManualSession?.access_token && storedManualSession?.refresh_token) {
+        const { error } = await client.auth.setSession({
+          access_token: storedManualSession.access_token,
+          refresh_token: storedManualSession.refresh_token,
+        });
+
+        if (error) {
+          console.warn('[auth] Stored manual session could not be restored:', error.message);
+          window.quizManualAuth?.clearStoredSession?.();
+        }
+      }
+
       await client.auth.getSession();
     },
     async getSession() {
@@ -243,6 +256,7 @@ async function createSupabaseAdapter(config) {
     async signOut() {
       const { error } = await client.auth.signOut();
       if (error) throw error;
+      window.quizManualAuth?.clearStoredSession?.();
     },
     async ensureProfile(session) {
       const response = await fetch('/api/quiz-profile', {
@@ -280,13 +294,44 @@ async function createSupabaseAdapter(config) {
       return data;
     },
     async updateProfileOnboarding(userId, { userType, institution }) {
-      const { data, error } = await client
+      const nextUserType = normalizeUserTypeForDb(userType);
+      let { data, error } = await client
         .from('quiz_profiles')
-        .update({ user_type: userType, institution: institution || null, updated_at: new Date().toISOString() })
+        .update({ user_type: nextUserType, institution: institution || null, updated_at: new Date().toISOString() })
         .eq('user_id', userId)
         .select('*')
         .single();
+
+      if (error && String(error.message || '').includes('institution')) {
+        const legacyResult = await client
+          .from('quiz_profiles')
+          .update({
+            user_type: nextUserType,
+            institution_name: institution || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .select('*')
+          .single();
+
+        data = legacyResult.data
+          ? {
+              ...legacyResult.data,
+              display_name: legacyResult.data.display_name || legacyResult.data.full_name || legacyResult.data.alias,
+              institution: legacyResult.data.institution_name || institution || '',
+              institution_name: legacyResult.data.institution_name || institution || '',
+              user_type: userType,
+            }
+          : null;
+        error = legacyResult.error;
+      }
       if (error) throw error;
+      if (data && data.user_type === 'employed') {
+        data.user_type = 'employee';
+      }
+      if (data && !data.institution_name && data.institution) {
+        data.institution_name = data.institution;
+      }
       return data;
     },
     async getAttempts(userId) {
@@ -330,6 +375,19 @@ async function getAppConfig() {
   return response.json();
 }
 
+function readStoredManualSession() {
+  try {
+    const raw = window.localStorage.getItem(MANUAL_SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function normalizeUserTypeForDb(userType) {
+  return String(userType || '').trim().toLowerCase() === 'employee' ? 'employed' : 'student';
+}
+
 function collectElements() {
   els.authActions = document.getElementById('authActions');
   els.profileCard = document.getElementById('profileCard');
@@ -348,16 +406,30 @@ function collectElements() {
 
 function renderAuthActions() {
   const signedIn = Boolean(state.session);
-  const providerButtons = signedIn
-    ? `<button type="button" data-action="signout" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Sign out</button>`
-    : `
-      <button type="button" data-action="signin-google" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Continue with Google</button>
-      <button type="button" data-action="signin-facebook" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Continue with Facebook</button>
+  if (signedIn) {
+    const displayName = getUserDisplayName(state.session, state.profile);
+    els.authActions.innerHTML = `
+      <div class="flex flex-wrap items-center justify-end gap-3">
+        <div class="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800">${escapeHtml(displayName)}</div>
+        <button type="button" data-action="signout" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Sign out</button>
+      </div>
     `;
-  els.authActions.innerHTML = providerButtons;
+    return;
+  }
+
+  els.authActions.innerHTML = `<button type="button" data-action="signin-manual" class="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">Sign In / Register</button>`;
 }
 
 function renderProfile() {
+  if (state.isRefreshing && state.session && !state.profile) {
+    els.profileCard.innerHTML = `
+      <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 text-sm text-slate-600">
+        Loading your quiz profile and progress...
+      </div>
+    `;
+    return;
+  }
+
   if (!state.session || !state.profile) {
     els.profileCard.innerHTML = `
       <div class="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-5 text-sm text-slate-700">
@@ -432,22 +504,11 @@ function renderProfile() {
     return;
   }
 
-  const unlockedLevel = getUnlockedLevel(state.profile);
-  const thisMonth = monthKey();
-  const attemptsThisMonth = state.attempts.filter((attempt) => attempt.month_key === thisMonth);
   const displayName = getUserDisplayName(state.session, state.profile);
   const email = getUserEmail(state.session);
   const avatarUrl = getUserAvatar(state.session);
   const initials = getUserInitials(state.session, state.profile);
   const providerLabel = getProviderLabel(state.session, state.adapter?.mode);
-  const completedLevels = new Set(state.attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.level)).size;
-  
-  // Calculate remaining attempts based on unlocked levels not yet attempted
-  const unlockedLevelNumbers = Array.from({ length: unlockedLevel }, (_, i) => i + 1);
-  const remainingAttempts = unlockedLevelNumbers.filter(
-    lvl => !attemptsThisMonth.find(a => a.level === lvl)
-  ).length;
-  
   const joinedOn = state.profile.created_at
     ? new Date(state.profile.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : 'This session';
@@ -462,45 +523,17 @@ function renderProfile() {
               : `<div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-xl font-black text-white shadow-sm">${escapeHtml(initials)}</div>`
           }
           <div>
-            <div class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">${escapeHtml(providerLabel)}</div>
+            ${providerLabel ? `<div class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">${escapeHtml(providerLabel)}</div>` : ''}
             <h3 class="mt-3 text-2xl font-black text-slate-900">${escapeHtml(displayName)}</h3>
             <p class="mt-1 text-sm text-slate-500">${email ? escapeHtml(email) : 'Signed in and ready to play'}</p>
           </div>
         </div>
         <div class="grid gap-2 text-sm text-slate-600">
           <div class="rounded-2xl bg-slate-50 px-4 py-3">
-            <span class="font-semibold text-slate-900">Display name:</span> ${escapeHtml(state.profile.display_name || displayName)}
-          </div>
-          <div class="rounded-2xl bg-slate-50 px-4 py-3">
             <span class="font-semibold text-slate-900">Profile created:</span> ${escapeHtml(joinedOn)}
           </div>
         </div>
       </div>
-    </div>
-    <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Unlocked level</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">Level ${unlockedLevel}</div>
-        <p class="mt-1 text-xs text-slate-500">Your highest live access right now</p>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Passed levels</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">${completedLevels} / 20</div>
-        <p class="mt-1 text-xs text-slate-500">Cleared across your recorded attempts</p>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Attempts this month</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">${attemptsThisMonth.length}</div>
-        <p class="mt-1 text-xs text-slate-500">${remainingAttempts} unlocked level(s) not yet attempted this month</p>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Profile status</div>
-        <div class="mt-2 text-lg font-bold text-slate-900">Active</div>
-        <p class="mt-1 text-xs text-slate-500">Your sign-in and progress are being remembered</p>
-      </div>
-    </div>
-    <div class="mt-4 rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
-      Your leaderboard name is sourced from your sign-in profile to keep the competition tied to real participant identities.
     </div>
   `;
 }
@@ -511,6 +544,16 @@ function renderLevels() {
   }
 
   if (!state.levelsVisible || !els.levelsGrid) {
+    return;
+  }
+
+  if (state.isRefreshing && state.session && !state.profile) {
+    els.levelsGrid.className = 'mt-6 grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5';
+    els.levelsGrid.innerHTML = `
+      <div class="col-span-full rounded-2xl border border-slate-200 bg-white/80 p-5 text-sm text-slate-600">
+        Loading your unlocked levels...
+      </div>
+    `;
     return;
   }
 
@@ -557,6 +600,15 @@ function renderLevels() {
 
 function renderLeaderboard() {
   els.leaderboardMonth.textContent = formatMonthKey(monthKey());
+  if (state.isRefreshing && !state.leaderboard.length) {
+    els.leaderboardList.innerHTML = `
+      <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 text-sm text-slate-600">
+        Loading leaderboard...
+      </div>
+    `;
+    return;
+  }
+
   if (!state.leaderboard.length) {
     els.leaderboardList.innerHTML = `
       <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-600">
@@ -609,14 +661,14 @@ function renderAttemptWorkspace() {
   if (!state.activeQuestions.length) {
     openQuizModal();
     els.quizModalTitle.textContent = `${levelMeta.title}: ${levelMeta.subtitle}`;
-    els.quizModalMeta.textContent = 'Loading questionsâ€¦';
+    els.quizModalMeta.textContent = 'Loading questions...';
     els.quizForm.innerHTML = `
       <div class="flex items-center gap-3 text-sm text-slate-600">
         <svg class="animate-spin h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
         </svg>
-        Fetching your question setâ€¦
+        Fetching your questions
       </div>
     `;
     els.quizActions.innerHTML = `
@@ -723,17 +775,70 @@ function renderAll() {
   renderResult();
 }
 
-async function refreshData() {
+async function refreshSecondaryData() {
   if (!state.session) {
-    state.profile = null;
     state.attempts = [];
     state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
     return;
   }
 
-  state.profile = await state.adapter.ensureProfile(state.session);
-  state.attempts = await state.adapter.getAttempts(state.session.user.id);
-  state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
+  const [attempts, leaderboard] = await Promise.all([
+    state.adapter.getAttempts(state.session.user.id),
+    state.adapter.getCurrentLeaderboard(monthKey()),
+  ]);
+
+  state.attempts = attempts;
+  state.leaderboard = leaderboard;
+}
+
+async function primeSessionData() {
+  state.isRefreshing = true;
+  try {
+    if (!state.session) {
+      state.profile = null;
+      state.attempts = [];
+      state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
+      return;
+    }
+
+    state.profile = await state.adapter.ensureProfile(state.session);
+  } finally {
+    state.isRefreshing = false;
+  }
+
+  renderAll();
+
+  refreshSecondaryData()
+    .then(() => {
+      renderAll();
+    })
+    .catch((error) => {
+      console.error('[refresh] Secondary data load failed:', error);
+    });
+}
+
+async function refreshData() {
+  state.isRefreshing = true;
+  if (!state.session) {
+    state.profile = null;
+    state.attempts = [];
+    try {
+      await refreshSecondaryData();
+    } finally {
+      state.isRefreshing = false;
+    }
+    return;
+  }
+
+  try {
+    const [profile] = await Promise.all([
+      state.adapter.ensureProfile(state.session),
+    ]);
+    state.profile = profile;
+    await refreshSecondaryData();
+  } finally {
+    state.isRefreshing = false;
+  }
 }
 
 async function startLevel(level) {
@@ -917,15 +1022,22 @@ async function handleAction(event) {
       if (actionName === 'show-levels') {
         event.preventDefault();
         state.levelsVisible = true;
-      } else
-      if (actionName === 'signin-google') {
-        console.log('[action] Initiating Google sign-in...');
-        await state.adapter.signIn('google');
-        // Note: Control doesn't reach here - user is redirected to Google
-      } else if (actionName === 'signin-facebook') {
-        console.log('[action] Initiating Facebook sign-in...');
-        await state.adapter.signIn('facebook');
-        // Note: Control doesn't reach here - user is redirected to Facebook
+        renderAll();
+        if (state.session && !state.profile && !state.isRefreshing) {
+          primeSessionData()
+            .then(() => renderAll())
+            .catch((error) => {
+              console.error('[levels] Failed to refresh data:', error);
+              renderAll();
+            });
+        }
+        if (els.levelsSection) {
+          els.levelsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      } else if (actionName === 'signin-manual') {
+        window.showManualAuthModal?.();
+        return;
       } else if (actionName === 'signout') {
         await state.adapter.signOut();
         state.session = null;
@@ -943,10 +1055,6 @@ async function handleAction(event) {
 
     await refreshData();
     renderAll();
-
-    if (actionName === 'show-levels') {
-      els.levelsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
     return;
   }
 
@@ -1182,58 +1290,62 @@ function downloadLeaderboardFlyer() {
     .catch(() => renderFlyer());
 }
 
-async function initialize() {
-  collectElements();
-  state.config = await getAppConfig();
-  state.adapter = await createSupabaseAdapter(state.config);
-  state.authMessage = parseOAuthCallbackError();
+async function handleQuizAuthChange() {
+  state.authMessage = '';
+  state.lastResult = null;
+  cancelLevel();
 
-  // Setup auth state change listener BEFORE any session operations
-  // This ensures it fires even on initial page load with OAuth callback
-  const isOAuth = state.adapter.isOAuthCallback();
-  
-  if (typeof state.adapter.onAuthStateChange === 'function') {
-    state.adapter.onAuthStateChange(async (session) => {
-      console.log('[auth] Session changed:', { hasSession: !!session, isOAuth });
-      state.session = session;
-      if (session) {
-        state.authMessage = '';
-      }
-      
-      try {
-        await refreshData();
-        
-        // Check if onboarding is needed after session changes
-        if (state.session && state.profile && !state.profile.user_type) {
-          state.needsOnboarding = true;
-        } else {
-          state.needsOnboarding = false;
-        }
-      } catch (err) {
-        console.error('[auth] Error during session refresh:', err);
-      }
-      
-      renderAll();
-    });
+  if (!state.adapter) {
+    return;
   }
 
-  // Initialize and get initial session
-  // This will also detect session from URL if present (OAuth callback)
+  try {
+    state.isRefreshing = true;
+    renderAll();
+    await state.adapter.init();
+    state.session = await state.adapter.getSession();
+
+    if (!state.session) {
+      state.profile = null;
+      state.attempts = [];
+      await refreshSecondaryData();
+      state.needsOnboarding = false;
+      return;
+    }
+
+    await primeSessionData();
+    state.needsOnboarding = Boolean(state.session && state.profile && !state.profile.user_type);
+  } catch (error) {
+    console.error('[auth-change] Failed to refresh quiz state:', error);
+    state.authMessage = error.message || 'Unable to refresh your signed-in quiz profile right now.';
+  } finally {
+    state.isRefreshing = false;
+    renderAll();
+  }
+}
+
+async function initialize() {
+  collectElements();
+  document.addEventListener('click', handleAction);
+  document.addEventListener('submit', handleOnboardingSubmit);
+  window.addEventListener('quiz-auth-changed', () => {
+    handleQuizAuthChange().catch((error) => {
+      console.error('[auth-change] Unexpected error:', error);
+    });
+  });
+
+  state.config = await getAppConfig();
+  state.adapter = await createSupabaseAdapter(state.config);
+  state.authMessage = '';
+  renderAll();
   await state.adapter.init();
   state.session = await state.adapter.getSession();
-  
-  console.log('[init] Page loaded:', { 
-    hasSession: !!state.session, 
-    isOAuthCallback: isOAuth,
-    url: window.location.href
-  });
-  
-  // Only do initial refresh if we already have a session
-  // The auth listener will handle session detection
+
   if (state.session) {
     try {
-      await refreshData();
-      
+      state.isRefreshing = true;
+      renderAll();
+      await primeSessionData();
       if (state.session && state.profile && !state.profile.user_type) {
         state.needsOnboarding = true;
       } else {
@@ -1242,36 +1354,8 @@ async function initialize() {
     } catch (err) {
       console.error('[init] Error during initial refresh:', err);
     }
-  } else if (isOAuth) {
-    // OAuth callback but no session yet - might be loading
-    console.log('[init] Waiting for OAuth session to be detected...');
-    window.setTimeout(async () => {
-      const delayedSession = await state.adapter.getSession();
-      console.log('[init] Delayed OAuth session check:', { hasSession: !!delayedSession });
-
-      if (delayedSession) {
-        state.session = delayedSession;
-        state.authMessage = '';
-
-        try {
-          await refreshData();
-          if (state.session && state.profile && !state.profile.user_type) {
-            state.needsOnboarding = true;
-          } else {
-            state.needsOnboarding = false;
-          }
-        } catch (err) {
-          console.error('[init] Error during delayed refresh:', err);
-          state.authMessage = err.message || 'Sign-in completed, but we could not finish loading your quiz profile.';
-        }
-      } else if (!state.authMessage) {
-        state.authMessage = 'Sign-in did not finish correctly. Please try again, and confirm the OAuth redirect URL in Supabase matches this page exactly.';
-      }
-
-      renderAll();
-    }, 1200);
   }
-  
+
   renderAll();
   
   // Wire up download flyer button
@@ -1280,8 +1364,6 @@ async function initialize() {
     downloadFlyerBtn.addEventListener('click', downloadLeaderboardFlyer);
   }
   
-  document.addEventListener('click', handleAction);
-  document.addEventListener('submit', handleOnboardingSubmit);
 }
 
 if (typeof window !== 'undefined') {
