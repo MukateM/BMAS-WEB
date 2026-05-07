@@ -68,14 +68,14 @@ export default async function handler(req, res) {
     // First get attempts
     let { data: attempts, error: attemptsError } = await sb
       .from('quiz_attempts')
-      .select('user_id, display_name, score, level, duration_seconds, submitted_at, month_key')
+      .select('user_id, display_name, score, level, duration_seconds, submitted_at, month_key, correct_count, total_questions')
       .eq('month_key', targetMonthKey);
 
     if (attemptsError) {
       // Try legacy format
       const legacyResult = await sb
         .from('quiz_attempts')
-        .select('user_id, display_alias, score, level, duration_seconds, submitted_at, month_key')
+        .select('user_id, display_alias, score, level, duration_seconds, submitted_at, month_key, correct_count, total_questions')
         .eq('month_key', targetMonthKey);
       attempts = legacyResult.data;
       attemptsError = legacyResult.error;
@@ -144,7 +144,9 @@ export default async function handler(req, res) {
       name: entry.display_name,
       institution: entry.institution_name,
       userType: entry.user_type,
-      score: parseFloat((Number(entry.score) * 100).toFixed(1)),
+      score: Number(entry.score),
+      correctCount: Number(entry.correct_count || 0),
+      totalQuestions: Number(entry.total_questions || 0),
       level: entry.level,
       duration: entry.duration_seconds
     }));

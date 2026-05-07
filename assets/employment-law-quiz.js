@@ -44,6 +44,15 @@ function asPercent(value) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatLeaderboardPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '0%';
+  if (numeric <= 1) {
+    return `${(numeric * 100).toFixed(1).replace(/\.0$/, '')}%`;
+  }
+  return `${numeric.toFixed(1).replace(/\.0$/, '')}%`;
+}
+
 function formatSeconds(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -524,8 +533,7 @@ function renderProfile() {
           }
           <div>
             ${providerLabel ? `<div class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">${escapeHtml(providerLabel)}</div>` : ''}
-            <h3 class="mt-3 text-2xl font-black text-slate-900">${escapeHtml(displayName)}</h3>
-            <p class="mt-1 text-sm text-slate-500">${email ? escapeHtml(email) : 'Signed in and ready to play'}</p>
+            <p class="${providerLabel ? 'mt-3' : ''} text-sm text-slate-500">${email ? escapeHtml(email) : 'Signed in and ready to play'}</p>
           </div>
         </div>
         <div class="grid gap-2 text-sm text-slate-600">
@@ -623,13 +631,13 @@ function renderLeaderboard() {
       <div class="flex items-center gap-4">
         <div class="flex h-11 w-11 items-center justify-center rounded-full ${index === 0 ? 'bg-amber-400 text-slate-900' : 'bg-slate-900 text-white'} font-bold">${index + 1}</div>
         <div>
-          <div class="font-semibold text-slate-900">${escapeHtml(entry.display_name)}</div>
-          <div class="text-sm text-slate-500">Level ${entry.level}</div>
+          <div class="font-semibold text-slate-900">${escapeHtml(entry.display_name || entry.name || 'Quiz member')}</div>
+          <div class="text-sm text-slate-500">Level ${entry.level} • ${escapeHtml(entry.institution || 'Not specified')}</div>
         </div>
       </div>
       <div class="text-right">
-        <div class="text-lg font-bold text-slate-900">${asPercent(Number(entry.score))}</div>
-        <div class="text-xs uppercase tracking-[0.18em] text-slate-500">${Math.round(Number(entry.duration_seconds || 0))}s</div>
+        <div class="text-lg font-bold text-slate-900">${formatLeaderboardPercent(entry.score)}</div>
+        <div class="text-xs uppercase tracking-[0.18em] text-slate-500">${Number(entry.correctCount || 0)}/${Number(entry.totalQuestions || 12)} pts • ${Math.round(Number(entry.duration_seconds || entry.duration || 0))}s</div>
       </div>
     </div>
   `).join('');
@@ -1238,7 +1246,8 @@ function downloadLeaderboardFlyer() {
       ctx.textAlign = 'left';
       ctx.fillStyle = isFirst ? colors.white : colors.navy;
       ctx.font = 'bold 28px Georgia, serif';
-      ctx.fillText(fitText(entry.display_name, 420, 'bold 28px Georgia, serif'), 198, yPos + 52);
+      const leaderboardName = entry.display_name || entry.name || 'Quiz member';
+      ctx.fillText(fitText(leaderboardName, 420, 'bold 28px Georgia, serif'), 198, yPos + 52);
 
       ctx.fillStyle = isFirst ? 'rgba(255, 255, 255, 0.78)' : colors.muted;
       ctx.font = '16px Arial, sans-serif';
