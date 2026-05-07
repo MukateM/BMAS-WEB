@@ -167,6 +167,14 @@ export async function ensureQuizProfile(adminClient, payload) {
 
   if (existingError) throw existingError;
 
+  const requestedLevel = Number(payload.current_level);
+  const normalizedRequestedLevel = Number.isFinite(requestedLevel) && requestedLevel > 0
+    ? Math.floor(requestedLevel)
+    : 1;
+  const preservedLevel = existing
+    ? Math.max(Number(existing.current_level || 1), normalizedRequestedLevel)
+    : normalizedRequestedLevel;
+
   const profilePayload = {
     user_id: userId,
     display_name: displayName,
@@ -174,7 +182,7 @@ export async function ensureQuizProfile(adminClient, payload) {
     email: normalizedEmail,
     user_type: dbUserType,
     institution,
-    current_level: Number(payload.current_level || 1),
+    current_level: preservedLevel,
     updated_at: new Date().toISOString(),
   };
 
@@ -185,7 +193,7 @@ export async function ensureQuizProfile(adminClient, payload) {
     email: normalizedEmail,
     user_type: dbUserType,
     institution_name: institution,
-    current_level: Number(payload.current_level || 1),
+    current_level: preservedLevel,
     updated_at: new Date().toISOString(),
   };
 
