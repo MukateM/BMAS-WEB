@@ -48,6 +48,15 @@ export async function reconcileQuizProfileLevel(sb, userId, profile) {
     .select('*')
     .single();
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    const message = String(updateError.message || '');
+    if (updateError.code === '23514' || message.includes('quiz_profiles_current_level_check')) {
+      return {
+        ...profile,
+        current_level: Math.max(1, Number(profile.current_level || 1)),
+      };
+    }
+    throw updateError;
+  }
   return updated;
 }

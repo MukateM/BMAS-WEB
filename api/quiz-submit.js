@@ -37,6 +37,48 @@ function shouldRetryWithLegacyAttemptInsert(error) {
   return message.includes('display_name') || message.includes('display_alias');
 }
 
+async function insertQuizAttempt(sb, payload, attemptDisplayName) {
+  const common = {
+    user_id: payload.user_id,
+    level: payload.level,
+    month_key: payload.month_key,
+    score: payload.score,
+    passed: payload.passed,
+    correct_count: payload.correct_count,
+    total_questions: payload.total_questions,
+    duration_seconds: payload.duration_seconds,
+    submitted_at: payload.submitted_at,
+  };
+
+  const combinedInsert = await sb.from('quiz_attempts').insert({
+    ...common,
+    display_name: attemptDisplayName,
+    display_alias: attemptDisplayName,
+  });
+  if (!combinedInsert.error) return null;
+
+  const combinedMessage = String(combinedInsert.error.message || '');
+  if (!combinedMessage.includes('display_name') && !combinedMessage.includes('display_alias')) {
+    return combinedInsert.error;
+  }
+
+  const modernInsert = await sb.from('quiz_attempts').insert({
+    ...common,
+    display_name: attemptDisplayName,
+  });
+  if (!modernInsert.error) return null;
+
+  if (!shouldRetryWithLegacyAttemptInsert(modernInsert.error)) {
+    return modernInsert.error;
+  }
+
+  const legacyInsert = await sb.from('quiz_attempts').insert({
+    ...common,
+    display_alias: attemptDisplayName,
+  });
+  return legacyInsert.error || null;
+}
+
 function hashSeed(input) {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
@@ -254,38 +296,18 @@ export default async function handler(req, res) {
     const rawScore = totalQuestions ? correctCount / totalQuestions : 0;
     const passed = rawScore >= PASS_THRESHOLD;
 
-    let { error: insertError } = await sb
-      .from('quiz_attempts')
-      .insert({
-        user_id: userId,
-        display_name: attemptDisplayName,
-        level: effectiveLevel,
-        month_key: effectiveMonthKey,
-        score: parseFloat(rawScore.toFixed(4)),
-        passed,
-        correct_count: correctCount,
-        total_questions: totalQuestions,
-        duration_seconds: effectiveDurationSeconds,
-        submitted_at: new Date().toISOString(),
-      });
-
-    if (insertError && shouldRetryWithLegacyAttemptInsert(insertError)) {
-      const legacyInsert = await sb
-        .from('quiz_attempts')
-        .insert({
-          user_id: userId,
-          display_alias: attemptDisplayName,
-          level: effectiveLevel,
-          month_key: effectiveMonthKey,
-          score: parseFloat(rawScore.toFixed(4)),
-          passed,
-          correct_count: correctCount,
-          total_questions: totalQuestions,
-          duration_seconds: effectiveDurationSeconds,
-          submitted_at: new Date().toISOString(),
-        });
-      insertError = legacyInsert.error;
-    }
+    const submittedAt = new Date().toISOString();
+    const insertError = await insertQuizAttempt(sb, {
+      user_id: userId,
+      level: effectiveLevel,
+      month_key: effectiveMonthKey,
+      score: parseFloat(rawScore.toFixed(4)),
+      passed,
+      correct_count: correctCount,
+      total_questions: totalQuestions,
+      duration_seconds: effectiveDurationSeconds,
+      submitted_at: submittedAt,
+    }, attemptDisplayName);
 
     if (insertError) {
       throw insertError;
