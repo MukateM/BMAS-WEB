@@ -29,7 +29,7 @@ export async function reconcileQuizProfileLevel(sb, userId, profile) {
     .from('quiz_attempts')
     .select('level, passed')
     .eq('user_id', userId)
-    .eq('passed', true);
+    .order('submitted_at', { ascending: false });
 
   if (attemptsError) throw attemptsError;
 
