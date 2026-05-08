@@ -1,8 +1,18 @@
 import { signInManualQuizUser, validateSigninPayload } from './_lib/quiz-auth.js';
+import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed.' });
+  }
+
+  const limiter = assertSimpleRateLimit({
+    key: `quiz-signin:${getClientIp(req)}`,
+    limit: 10,
+    windowMs: 60 * 1000,
+  });
+  if (!limiter.ok) {
+    return res.status(429).json({ error: 'Too many sign-in attempts. Please try again shortly.' });
   }
 
   try {
@@ -24,7 +34,6 @@ export default async function handler(req, res) {
       user: result.user,
       profile: result.profile,
       session: result.session,
-      token: result.session.access_token,
     });
   } catch (error) {
     console.error('[quiz-signin] Unexpected error:', {

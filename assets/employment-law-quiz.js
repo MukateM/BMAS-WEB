@@ -277,15 +277,7 @@ async function createSupabaseAdapter(config) {
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         let message = error.error || 'Unable to load your quiz profile right now.';
-        
-        // Include debug information if available
-        if (error.fullError) {
-          message += ` [Debug: ${error.fullError.code || error.fullError.message}]`;
-        }
-        if (error.type) {
-          message += ` (${error.type})`;
-        }
-        
+
         throw new Error(message);
       }
 

@@ -1,5 +1,6 @@
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
 import { normalizeUserTypeForDb, sanitizeProfile } from './_lib/quiz-auth.js';
+import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
 
 function buildDisplayName(user) {
   return (
@@ -46,6 +47,8 @@ export default async function handler(req, res) {
     if (selectError) throw selectError;
 
     if (existing) {
+      existing = await reconcileQuizProfileLevel(sb, userId, existing);
+
       if (!existing.display_name) {
         const { data: updated, error: updateError } = await sb
           .from('quiz_profiles')
@@ -129,43 +132,19 @@ export default async function handler(req, res) {
       code: err?.code,
       status: err?.status,
       details: err?.details,
-      hint: err?.hint,
-      stack: err?.stack,
-      constructor: err?.constructor?.name,
     });
-    
-    // Provide more specific error messages based on the error
+
     const message = String(err?.message || '');
-    const details = String(err?.details || '');
-    const hint = String(err?.hint || '');
-    
     let userMessage = 'Unable to load your quiz profile right now.';
-    let debugInfo = {};
-    
+
     if (message.includes('relation') && message.includes('does not exist')) {
       userMessage = 'Database tables are not initialized.';
-      debugInfo.type = 'missing_table';
     } else if (message.includes('permission') || message.includes('denied')) {
       userMessage = 'Access to quiz profile data denied.';
-      debugInfo.type = 'permission_error';
     } else if (message.includes('connection') || message.includes('ECONNREFUSED')) {
       userMessage = 'Cannot connect to database.';
-      debugInfo.type = 'connection_error';
     }
-    
-    // Include debug info in non-production environments
-    if (process.env.NODE_ENV !== 'production') {
-      debugInfo.fullError = {
-        message: err?.message,
-        code: err?.code,
-        details: err?.details,
-        hint: err?.hint,
-      };
-    }
-    
-    return res.status(500).json({ 
-      error: userMessage,
-      ...debugInfo
-    });
+
+    return res.status(500).json({ error: userMessage });
   }
 }

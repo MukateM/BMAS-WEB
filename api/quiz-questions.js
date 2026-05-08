@@ -7,6 +7,7 @@
  */
 
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
+import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
 
 const QUESTIONS_PER_ATTEMPT = 12;
 const DUPLICATE_ATTEMPT_ERROR = 'You have already submitted this level for the current month.';
@@ -79,7 +80,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data: profile, error: profileError } = await sb
+    let { data: profile, error: profileError } = await sb
       .from('quiz_profiles')
       .select('current_level')
       .eq('user_id', userId)
@@ -93,6 +94,8 @@ export default async function handler(req, res) {
     if (!profile) {
       return res.status(404).json({ error: 'Quiz profile not found.' });
     }
+
+    profile = await reconcileQuizProfileLevel(sb, userId, profile);
 
     if (level > Number(profile.current_level || 1)) {
       return res.status(403).json({ error: 'This level is still locked.' });

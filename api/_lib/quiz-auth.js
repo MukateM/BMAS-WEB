@@ -5,6 +5,7 @@ import { getQuizAdminClient, getQuizEnv } from './quiz-env.js';
 
 const QUIZ_MANUAL_USERS_TABLE = 'quiz_manual_users';
 const PASSWORD_SALT_ROUNDS = 12;
+const BCRYPT_MAX_PASSWORD_BYTES = 72;
 
 function isMissingManualUsersTableError(error) {
   const message = String(error?.message || '');
@@ -95,6 +96,9 @@ export function validateSignupPayload(body = {}) {
   if (password.length < 8) {
     return { ok: false, error: 'Password must be at least 8 characters.' };
   }
+  if (new TextEncoder().encode(password).length > BCRYPT_MAX_PASSWORD_BYTES) {
+    return { ok: false, error: 'Password must be 72 bytes or fewer.' };
+  }
 
   return {
     ok: true,
@@ -108,6 +112,9 @@ export function validateSigninPayload(body = {}) {
 
   if (!email || !password) {
     return { ok: false, error: 'Email and password are required.' };
+  }
+  if (new TextEncoder().encode(password).length > BCRYPT_MAX_PASSWORD_BYTES) {
+    return { ok: false, error: 'Password must be 72 bytes or fewer.' };
   }
 
   return {

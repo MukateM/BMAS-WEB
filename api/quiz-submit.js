@@ -11,6 +11,7 @@
  */
 
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
+import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
 
 const PASS_THRESHOLD = 0.75;
 const DUPLICATE_ATTEMPT_ERROR = 'You have already submitted this level for the current month.';
@@ -177,6 +178,8 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Quiz profile not found.' });
     }
 
+    profile = await reconcileQuizProfileLevel(sb, userId, profile);
+
     const { data: rows, error: fetchError } = await sb
       .from('quiz_questions')
       .select('id, correct_index, option_a, option_b, option_c, option_d, explanation, act_reference, case_reference')
@@ -266,7 +269,7 @@ export default async function handler(req, res) {
       if (sessionUpdateError) throw sessionUpdateError;
     }
 
-    if (passed && effectiveLevel < 20 && profile.current_level === effectiveLevel) {
+    if (passed && effectiveLevel < 20 && Number(profile.current_level || 1) === effectiveLevel) {
       await sb
         .from('quiz_profiles')
         .update({ current_level: effectiveLevel + 1, updated_at: new Date().toISOString() })
