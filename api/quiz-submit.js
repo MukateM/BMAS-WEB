@@ -16,6 +16,22 @@ import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
 
 const PASS_THRESHOLD = 0.5;
 
+function buildAttemptDisplayName(profile, user) {
+  const candidates = [
+    profile?.display_name,
+    profile?.full_name,
+    profile?.alias,
+    user?.user_metadata?.full_name,
+    user?.user_metadata?.name,
+    user?.email,
+    'Quiz member',
+  ];
+
+  return candidates
+    .map((value) => String(value || '').trim())
+    .find(Boolean) || 'Quiz member';
+}
+
 function hashSeed(input) {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
@@ -176,6 +192,23 @@ export default async function handler(req, res) {
     }
 
     profile = await reconcileQuizProfileLevel(sb, userId, profile);
+    const attemptDisplayName = buildAttemptDisplayName(profile, user);
+
+    if (!String(profile.display_name || '').trim()) {
+      const { error: profileRepairError } = await sb
+        .from('quiz_profiles')
+        .update({ display_name: attemptDisplayName, updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+
+      if (!profileRepairError) {
+        profile = {
+          ...profile,
+          display_name: attemptDisplayName,
+        };
+      } else if (!String(profileRepairError.message || '').includes('display_name')) {
+        throw profileRepairError;
+      }
+    }
 
     const { data: rows, error: fetchError } = await sb
       .from('quiz_questions')
@@ -220,7 +253,7 @@ export default async function handler(req, res) {
       .from('quiz_attempts')
       .insert({
         user_id: userId,
-        display_name: profile.display_name,
+        display_name: attemptDisplayName,
         level: effectiveLevel,
         month_key: effectiveMonthKey,
         score: parseFloat(rawScore.toFixed(4)),
@@ -236,7 +269,7 @@ export default async function handler(req, res) {
         .from('quiz_attempts')
         .insert({
           user_id: userId,
-          display_alias: profile.display_name,
+          display_alias: attemptDisplayName,
           level: effectiveLevel,
           month_key: effectiveMonthKey,
           score: parseFloat(rawScore.toFixed(4)),
