@@ -73,12 +73,12 @@ create table if not exists public.quiz_attempts (
   correct_count integer not null check (correct_count >= 0),
   total_questions integer not null check (total_questions > 0),
   duration_seconds integer not null default 0 check (duration_seconds >= 0),
-  submitted_at timestamptz not null default now(),
-  unique (user_id, level, month_key)
+  submitted_at timestamptz not null default now()
 );
 
 create index if not exists quiz_attempts_month_key_idx on public.quiz_attempts(month_key);
 create index if not exists quiz_attempts_user_id_idx on public.quiz_attempts(user_id);
+create index if not exists quiz_attempts_user_level_month_idx on public.quiz_attempts(user_id, level, month_key);
 
 create table if not exists public.leaderboard_monthly_snapshot (
   id uuid primary key default gen_random_uuid(),
@@ -200,22 +200,38 @@ begin
   select
     ranked.month_key,
     row_number() over (
-      order by ranked.score desc, ranked.level desc, ranked.duration_seconds asc, ranked.submitted_at asc
+      order by ranked.level desc, ranked.correct_count desc, ranked.score desc, ranked.duration_seconds asc, ranked.last_submitted_at asc
     ) as rank,
     ranked.display_name,
     ranked.score,
     ranked.level
   from (
-    select distinct on (qa.display_name)
-      qa.month_key,
-      qa.display_name,
-      qa.score,
-      qa.level,
-      qa.duration_seconds,
-      qa.submitted_at
-    from public.quiz_attempts qa
-    where qa.month_key = target_month
-    order by qa.display_name, qa.score desc, qa.level desc, qa.duration_seconds asc, qa.submitted_at asc
+    with first_passes as (
+      select distinct on (qa.user_id, qa.level)
+        qa.user_id,
+        qa.month_key,
+        qa.display_name,
+        qa.level,
+        qa.score,
+        qa.correct_count,
+        qa.total_questions,
+        qa.duration_seconds,
+        qa.submitted_at
+      from public.quiz_attempts qa
+      where qa.month_key = target_month
+        and qa.passed = true
+      order by qa.user_id, qa.level, qa.submitted_at asc
+    )
+    select
+      fp.month_key,
+      fp.display_name,
+      max(fp.level) as level,
+      round((sum(fp.correct_count)::numeric / nullif(sum(fp.total_questions), 0)), 4) as score,
+      sum(fp.correct_count) as correct_count,
+      sum(fp.duration_seconds) as duration_seconds,
+      max(fp.submitted_at) as last_submitted_at
+    from first_passes fp
+    group by fp.month_key, fp.user_id, fp.display_name
   ) ranked;
 end;
 $$;

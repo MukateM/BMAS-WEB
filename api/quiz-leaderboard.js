@@ -7,41 +7,84 @@ function monthKey(value = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function pickBestAttempts(attempts, targetMonthKey) {
-  const bestByName = new Map();
+function buildMonthlyLeaderboard(attempts, targetMonthKey) {
+  const firstPassesByLevel = new Map();
 
   attempts
     .filter((attempt) => attempt.month_key === targetMonthKey)
     .forEach((attempt) => {
-      const attemptKey = attempt.user_id;
-      const existing = bestByName.get(attemptKey);
-      
-      if (!existing) {
-        bestByName.set(attemptKey, { ...attempt });
-        return;
-      }
+      if (!attempt.passed) return;
 
-      const existingScore = Number(existing.score);
-      const incomingScore = Number(attempt.score);
+      const levelKey = `${attempt.user_id}:${attempt.level}`;
+      const existingLevelPass = firstPassesByLevel.get(levelKey);
       if (
-        incomingScore > existingScore ||
-        (incomingScore === existingScore && attempt.level > existing.level) ||
-        (incomingScore === existingScore &&
-          attempt.level === existing.level &&
-          Number(attempt.duration_seconds || 0) < Number(existing.duration_seconds || 0))
+        !existingLevelPass ||
+        new Date(attempt.submitted_at).getTime() < new Date(existingLevelPass.submitted_at).getTime()
       ) {
-        bestByName.set(attemptKey, { ...attempt });
+        firstPassesByLevel.set(levelKey, { ...attempt });
       }
     });
 
-  return Array.from(bestByName.values()).sort((a, b) => {
-    if (Number(b.score) !== Number(a.score)) return Number(b.score) - Number(a.score);
-    if (b.level !== a.level) return b.level - a.level;
-    if (Number(a.duration_seconds || 0) !== Number(b.duration_seconds || 0)) {
-      return Number(a.duration_seconds || 0) - Number(b.duration_seconds || 0);
-    }
-    return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
-  });
+  const aggregates = new Map();
+  Array.from(firstPassesByLevel.values()).forEach((attempt) => {
+      const attemptKey = attempt.user_id;
+      const existing = aggregates.get(attemptKey);
+      const correctCount = Number(attempt.correct_count || 0);
+      const totalQuestions = Number(attempt.total_questions || 0);
+      const durationSeconds = Number(attempt.duration_seconds || 0);
+      const attemptLevel = Number(attempt.level || 1);
+      const submittedAt = new Date(attempt.submitted_at).getTime();
+
+      if (!existing) {
+        aggregates.set(attemptKey, {
+          ...attempt,
+          highest_level: attemptLevel,
+          correct_count: correctCount,
+          total_questions: totalQuestions,
+          duration_seconds: durationSeconds,
+          attempts_count: 1,
+          first_submitted_at: attempt.submitted_at,
+          last_submitted_at: attempt.submitted_at,
+          best_single_score: Number(attempt.score || 0),
+        });
+        return;
+      }
+
+      existing.correct_count += correctCount;
+      existing.total_questions += totalQuestions;
+      existing.duration_seconds += durationSeconds;
+      existing.attempts_count += 1;
+      existing.highest_level = Math.max(Number(existing.highest_level || 1), attemptLevel);
+      existing.best_single_score = Math.max(Number(existing.best_single_score || 0), Number(attempt.score || 0));
+
+      if (submittedAt < new Date(existing.first_submitted_at).getTime()) {
+        existing.first_submitted_at = attempt.submitted_at;
+      }
+      if (submittedAt > new Date(existing.last_submitted_at).getTime()) {
+        existing.last_submitted_at = attempt.submitted_at;
+      }
+    });
+
+  return Array.from(aggregates.values())
+    .map((entry) => ({
+      ...entry,
+      level: Number(entry.highest_level || entry.level || 1),
+      score: Number(entry.total_questions || 0) > 0
+        ? Number((Number(entry.correct_count || 0) / Number(entry.total_questions || 0)).toFixed(4))
+        : 0,
+    }))
+    .sort((a, b) => {
+      if (Number(b.level || 0) !== Number(a.level || 0)) return Number(b.level || 0) - Number(a.level || 0);
+      if (Number(b.correct_count || 0) !== Number(a.correct_count || 0)) {
+        return Number(b.correct_count || 0) - Number(a.correct_count || 0);
+      }
+      if (Number(b.score || 0) !== Number(a.score || 0)) return Number(b.score || 0) - Number(a.score || 0);
+      if (Number(a.duration_seconds || 0) !== Number(b.duration_seconds || 0)) {
+        return Number(a.duration_seconds || 0) - Number(b.duration_seconds || 0);
+      }
+      return new Date(a.last_submitted_at || a.submitted_at).getTime()
+        - new Date(b.last_submitted_at || b.submitted_at).getTime();
+    });
 }
 
 export default async function handler(req, res) {
@@ -136,7 +179,7 @@ export default async function handler(req, res) {
       };
     });
 
-    const leaderboard = pickBestAttempts(enrichedAttempts, targetMonthKey).slice(0, limit);
+    const leaderboard = buildMonthlyLeaderboard(enrichedAttempts, targetMonthKey).slice(0, limit);
     
     // Format leaderboard entries
     const formattedLeaderboard = leaderboard.map((entry, index) => ({
@@ -148,7 +191,8 @@ export default async function handler(req, res) {
       correctCount: Number(entry.correct_count || 0),
       totalQuestions: Number(entry.total_questions || 0),
       level: entry.level,
-      duration: entry.duration_seconds
+      duration: entry.duration_seconds,
+      attemptsCount: Number(entry.attempts_count || 1),
     }));
 
     return res.status(200).json({

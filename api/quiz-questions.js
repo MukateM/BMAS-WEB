@@ -8,9 +8,9 @@
 
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
 import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
+import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
 
 const QUESTIONS_PER_ATTEMPT = 12;
-const DUPLICATE_ATTEMPT_ERROR = 'You have already submitted this level for the current month.';
 const SESSION_WINDOW_MS = 30 * 60 * 1000;
 
 function monthKey(value = new Date()) {
@@ -47,6 +47,15 @@ function seededShuffle(items, seedText) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const limiter = assertSimpleRateLimit({
+    key: `quiz-questions:${getClientIp(req)}`,
+    limit: 30,
+    windowMs: 60 * 1000,
+  });
+  if (!limiter.ok) {
+    return res.status(429).json({ error: 'Too many level starts. Please slow down and try again shortly.' });
   }
 
   const auth = await getAuthenticatedQuizUser(req);
@@ -99,23 +108,6 @@ export default async function handler(req, res) {
 
     if (level > Number(profile.current_level || 1)) {
       return res.status(403).json({ error: 'This level is still locked.' });
-    }
-
-    const { data: existingAttempt, error: attemptsError } = await sb
-      .from('quiz_attempts')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('level', level)
-      .eq('month_key', monthKeyValue)
-      .maybeSingle();
-
-    if (attemptsError) {
-      console.error('[quiz-questions] Attempts query error:', attemptsError);
-      throw attemptsError;
-    }
-
-    if (existingAttempt) {
-      return res.status(409).json({ error: DUPLICATE_ATTEMPT_ERROR });
     }
 
     const { data: rows, error: questionsError } = await sb

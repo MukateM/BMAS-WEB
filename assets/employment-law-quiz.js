@@ -183,6 +183,12 @@ function getAttemptForMonth(level, attempts, key = monthKey()) {
   return attempts.find((attempt) => attempt.level === level && attempt.month_key === key) || null;
 }
 
+function getFirstPassedAttemptForMonth(level, attempts, key = monthKey()) {
+  return (attempts || [])
+    .filter((attempt) => attempt.level === level && attempt.month_key === key && attempt.passed)
+    .sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())[0] || null;
+}
+
 // Scoring is performed server-side in /api/quiz-submit.
 
 function getBestMonthlyAttempt(attempts, targetMonthKey) {
@@ -584,21 +590,24 @@ function renderLevels() {
   els.levelsGrid.innerHTML = visibleLevels
     .map((item) => {
       const locked = !DEV_MODE && (!state.profile || item.level > unlockedLevel);
-      const attempt = getAttemptForMonth(item.level, state.attempts, currentMonth);
-      const buttonDisabled = attempt || locked || !state.session;
+      const firstPass = getFirstPassedAttemptForMonth(item.level, state.attempts, currentMonth);
+      const buttonDisabled = locked || !state.session;
 
       return `
-        <button
-          type="button"
-          data-level-start="${item.level}"
-          ${buttonDisabled ? 'disabled' : ''}
-          class="rounded-lg border border-slate-200 ${
-            locked ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-900 hover:bg-slate-50 hover:border-slate-300'
-          } p-3 text-lg font-medium transition-colors"
-          title="${item.subtitle}"
-        >
-          ${item.level}
-        </button>
+        <div class="relative">
+          <button
+            type="button"
+            data-level-start="${item.level}"
+            ${buttonDisabled ? 'disabled' : ''}
+            class="w-full rounded-lg border border-slate-200 ${
+              locked ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-900 hover:bg-slate-50 hover:border-slate-300'
+            } p-3 text-lg font-medium transition-colors"
+            title="${item.subtitle}"
+          >
+            ${item.level}
+          </button>
+          ${firstPass ? '<div class="pointer-events-none absolute right-2 top-2 rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">Scored</div>' : ''}
+        </div>
       `;
     })
     .join('');
@@ -647,7 +656,7 @@ function renderLeaderboard() {
       </div>
       <div class="text-right">
         <div class="text-lg font-bold text-slate-900">${formatLeaderboardPercent(entry.score)}</div>
-        <div class="text-xs uppercase tracking-[0.18em] text-slate-500">${Number(entry.correctCount || 0)}/${Number(entry.totalQuestions || 12)} pts • ${Math.round(Number(entry.duration_seconds || entry.duration || 0))}s</div>
+        <div class="text-xs uppercase tracking-[0.18em] text-slate-500">${Number(entry.correctCount || 0)}/${Number(entry.totalQuestions || 12)} pts • ${Number(entry.attemptsCount || 1)} level${Number(entry.attemptsCount || 1) === 1 ? '' : 's'} • ${Math.round(Number(entry.duration_seconds || entry.duration || 0))}s</div>
       </div>
     </div>
   `).join('');
@@ -755,7 +764,7 @@ function renderResult() {
           <p class="mt-2 text-sm text-slate-600">${state.lastResult.correctCount} out of ${state.lastResult.totalQuestions} correct</p>
         </div>
         <div class="rounded-2xl ${state.lastResult.passed ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'} px-4 py-3 text-sm font-semibold">
-          ${state.lastResult.passed ? 'Level cleared. The next level is now unlocked if available.' : 'You can try this level again next calendar month.'}
+          ${state.lastResult.passed ? 'Level cleared. The next level is now unlocked if available. Further retries are practice only once this level has scored for the month.' : 'You can retry this level again. Leaderboard credit is only awarded on the first pass for each level this month.'}
         </div>
       </div>
     </div>
@@ -862,7 +871,6 @@ async function refreshData() {
 async function startLevel(level) {
   if (!state.profile || !state.session) return;
   if (!DEV_MODE && level > getUnlockedLevel(state.profile, state.attempts)) return;
-  if (getAttemptForMonth(level, state.attempts, monthKey())) return;
 
   // Show loading state
   state.activeLevel = level;

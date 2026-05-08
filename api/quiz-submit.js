@@ -12,9 +12,9 @@
 
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
 import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
+import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
 
 const PASS_THRESHOLD = 0.5;
-const DUPLICATE_ATTEMPT_ERROR = 'You have already submitted this level for the current month.';
 
 function hashSeed(input) {
   let hash = 2166136261;
@@ -45,6 +45,15 @@ function seededShuffle(items, seedText) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const limiter = assertSimpleRateLimit({
+    key: `quiz-submit:${getClientIp(req)}`,
+    limit: 60,
+    windowMs: 60 * 1000,
+  });
+  if (!limiter.ok) {
+    return res.status(429).json({ error: 'Too many submissions. Please wait a moment and try again.' });
   }
 
   const auth = await getAuthenticatedQuizUser(req);
@@ -102,7 +111,7 @@ export default async function handler(req, res) {
       }
 
       if (sessionRow.submitted_at) {
-        return res.status(409).json({ error: DUPLICATE_ATTEMPT_ERROR });
+        return res.status(409).json({ error: 'This quiz session has already been submitted. Please start the level again.' });
       }
 
       if (sessionRow.expires_at && new Date(sessionRow.expires_at).getTime() < Date.now()) {
@@ -138,18 +147,6 @@ export default async function handler(req, res) {
       if (questionIds.length !== answers.length) {
         return res.status(400).json({ error: 'Answer count does not match the issued question set.' });
       }
-    }
-
-    const { data: existing } = await sb
-      .from('quiz_attempts')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('level', effectiveLevel)
-      .eq('month_key', effectiveMonthKey)
-      .maybeSingle();
-
-    if (existing) {
-      return res.status(409).json({ error: DUPLICATE_ATTEMPT_ERROR });
     }
 
     let { data: profile, error: profileError } = await sb
@@ -253,9 +250,6 @@ export default async function handler(req, res) {
     }
 
     if (insertError) {
-      if (insertError.code === '23505') {
-        return res.status(409).json({ error: DUPLICATE_ATTEMPT_ERROR });
-      }
       throw insertError;
     }
 

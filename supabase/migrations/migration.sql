@@ -152,8 +152,7 @@ create table if not exists public.quiz_attempts (
   correct_count     smallint    not null,
   total_questions   smallint    not null,
   duration_seconds  int         not null default 0,
-  submitted_at      timestamptz not null default now(),
-  unique (user_id, level, month_key)
+  submitted_at      timestamptz not null default now()
 );
 
 alter table public.quiz_attempts enable row level security;
