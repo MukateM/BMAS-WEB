@@ -32,6 +32,11 @@ function buildAttemptDisplayName(profile, user) {
     .find(Boolean) || 'Quiz member';
 }
 
+function shouldRetryWithLegacyAttemptInsert(error) {
+  const message = String(error?.message || '');
+  return message.includes('display_name') || message.includes('display_alias');
+}
+
 function hashSeed(input) {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
@@ -264,7 +269,7 @@ export default async function handler(req, res) {
         submitted_at: new Date().toISOString(),
       });
 
-    if (insertError && String(insertError.message || '').includes('display_name')) {
+    if (insertError && shouldRetryWithLegacyAttemptInsert(insertError)) {
       const legacyInsert = await sb
         .from('quiz_attempts')
         .insert({
