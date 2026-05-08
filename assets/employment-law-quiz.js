@@ -157,8 +157,26 @@ function getProviderLabel(session, adapterMode) {
   return `${provider.charAt(0).toUpperCase()}${provider.slice(1)} account`;
 }
 
-function getUnlockedLevel(profile) {
-  return Math.max(1, Math.min(20, Number(profile?.current_level || 1)));
+function getUnlockedLevel(profile, attempts = []) {
+  const passedLevels = new Set(
+    (attempts || [])
+      .filter((attempt) => attempt?.passed)
+      .map((attempt) => Number(attempt.level))
+      .filter((level) => Number.isInteger(level) && level >= 1 && level <= 20),
+  );
+
+  let highestSequentialPass = 0;
+  for (let level = 1; level <= 20; level += 1) {
+    if (!passedLevels.has(level)) break;
+    highestSequentialPass = level;
+  }
+
+  const derivedLevel = highestSequentialPass >= 20 ? 20 : highestSequentialPass + 1;
+  const storedLevel = Number.isFinite(Number(profile?.current_level))
+    ? Math.max(1, Math.min(20, Math.floor(Number(profile.current_level))))
+    : 1;
+
+  return Math.max(storedLevel, derivedLevel);
 }
 
 function getAttemptForMonth(level, attempts, key = monthKey()) {
@@ -557,7 +575,7 @@ function renderLevels() {
     return;
   }
 
-  const unlockedLevel = getUnlockedLevel(state.profile);
+  const unlockedLevel = getUnlockedLevel(state.profile, state.attempts);
   const currentMonth = monthKey();
   
   // Only show levels 1-3 for unauthenticated users
@@ -843,7 +861,7 @@ async function refreshData() {
 
 async function startLevel(level) {
   if (!state.profile || !state.session) return;
-  if (!DEV_MODE && level > getUnlockedLevel(state.profile)) return;
+  if (!DEV_MODE && level > getUnlockedLevel(state.profile, state.attempts)) return;
   if (getAttemptForMonth(level, state.attempts, monthKey())) return;
 
   // Show loading state
