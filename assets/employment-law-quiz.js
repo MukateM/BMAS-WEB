@@ -1,5 +1,5 @@
 ﻿import { quizLevels } from './employment-law-quiz-data.js';
-const PASS_THRESHOLD = 0.75;
+const PASS_THRESHOLD = 0.5;
 const QUESTIONS_PER_ATTEMPT = 12;
 const MANUAL_SESSION_STORAGE_KEY = 'quizSession';
 
@@ -1285,7 +1285,7 @@ function downloadLeaderboardFlyer() {
     ctx.textAlign = 'right';
     ctx.fillStyle = colors.muted;
     ctx.font = '16px Arial, sans-serif';
-    ctx.fillText('One attempt per level each month 75% pass mark BMAS', canvas.width - 92, canvas.height - 87);
+    ctx.fillText('One attempt per level each month 50% pass mark BMAS', canvas.width - 92, canvas.height - 87);
 
     canvas.toBlob((blob) => {
       if (!blob) {

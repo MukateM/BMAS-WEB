@@ -113,7 +113,7 @@ begin
     'correct_count',    v_correct,
     'total_questions',  v_total,
     'raw_score',        case when v_total > 0 then round((v_correct::numeric / v_total), 4) else 0 end,
-    'passed',           case when v_total > 0 then (v_correct::numeric / v_total) >= 0.75 else false end,
+    'passed',           case when v_total > 0 then (v_correct::numeric / v_total) >= 0.5 else false end,
     'details',          v_result
   );
 end;

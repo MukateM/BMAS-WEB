@@ -13,7 +13,7 @@
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
 import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
 
-const PASS_THRESHOLD = 0.75;
+const PASS_THRESHOLD = 0.5;
 const DUPLICATE_ATTEMPT_ERROR = 'You have already submitted this level for the current month.';
 
 function hashSeed(input) {
