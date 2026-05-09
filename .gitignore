@@ -7,3 +7,5 @@ node_modules/
 .migrations.sql
 .coverage/
 *.log
+dist/
+build/
