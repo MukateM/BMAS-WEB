@@ -9,9 +9,11 @@
 import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
 import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
 import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
+import { quizLevels } from '../assets/employment-law-quiz-data.js';
 
 const QUESTIONS_PER_ATTEMPT = 12;
-const SESSION_WINDOW_MS = 30 * 60 * 1000;
+const DEFAULT_SESSION_WINDOW_MS = 30 * 60 * 1000;
+const TIMED_SESSION_WINDOW_MS = 5 * 60 * 1000;
 
 function monthKey(value = new Date()) {
   const date = new Date(value);
@@ -42,6 +44,10 @@ function seededShuffle(items, seedText) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
+}
+
+function isTimedLevel(level) {
+  return Boolean(quizLevels.find((item) => item.level === level)?.timed);
 }
 
 export default async function handler(req, res) {
@@ -152,7 +158,8 @@ export default async function handler(req, res) {
       ? new Date(existingSession.expires_at).getTime() < Date.now()
       : false;
     const issuedAt = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + SESSION_WINDOW_MS).toISOString();
+    const sessionWindowMs = isTimedLevel(level) ? TIMED_SESSION_WINDOW_MS : DEFAULT_SESSION_WINDOW_MS;
+    const expiresAt = new Date(Date.now() + sessionWindowMs).toISOString();
     let attemptSessionId = existingSession?.id || null;
 
     if (!legacyMode && !attemptSessionId) {

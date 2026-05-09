@@ -2,16 +2,10 @@
 import { getQuizAdminClient } from './_lib/quiz-env.js';
 import { normalizeUserTypeForClient } from './_lib/quiz-auth.js';
 
-function monthKey(value = new Date()) {
-  const date = new Date(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
-}
-
-function buildMonthlyLeaderboard(attempts, targetMonthKey) {
+function buildLeaderboard(attempts) {
   const firstPassesByLevel = new Map();
 
   attempts
-    .filter((attempt) => attempt.month_key === targetMonthKey)
     .forEach((attempt) => {
       if (!attempt.passed) return;
 
@@ -104,22 +98,21 @@ export default async function handler(req, res) {
     });
   }
 
-  const targetMonthKey = String(req.query.monthKey || monthKey());
   const limit = parseInt(req.query.limit) || 10;
 
   try {
     // First get attempts
     let { data: attempts, error: attemptsError } = await sb
       .from('quiz_attempts')
-      .select('user_id, display_name, score, level, duration_seconds, submitted_at, month_key, correct_count, total_questions')
-      .eq('month_key', targetMonthKey);
+      .select('user_id, display_name, score, level, duration_seconds, submitted_at, month_key, correct_count, total_questions, passed')
+      .order('submitted_at', { ascending: false });
 
     if (attemptsError) {
       // Try legacy format
       const legacyResult = await sb
         .from('quiz_attempts')
-        .select('user_id, display_alias, score, level, duration_seconds, submitted_at, month_key, correct_count, total_questions')
-        .eq('month_key', targetMonthKey);
+        .select('user_id, display_alias, score, level, duration_seconds, submitted_at, month_key, correct_count, total_questions, passed')
+        .order('submitted_at', { ascending: false });
       attempts = legacyResult.data;
       attemptsError = legacyResult.error;
     }
@@ -179,7 +172,7 @@ export default async function handler(req, res) {
       };
     });
 
-    const leaderboard = buildMonthlyLeaderboard(enrichedAttempts, targetMonthKey).slice(0, limit);
+    const leaderboard = buildLeaderboard(enrichedAttempts).slice(0, limit);
     
     // Format leaderboard entries
     const formattedLeaderboard = leaderboard.map((entry, index) => ({
@@ -196,8 +189,7 @@ export default async function handler(req, res) {
     }));
 
     return res.status(200).json({
-      leaderboard: formattedLeaderboard,
-      month: targetMonthKey
+      leaderboard: formattedLeaderboard
     });
   } catch (err) {
     console.error('[quiz-leaderboard] Error:', err);

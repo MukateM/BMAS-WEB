@@ -53,7 +53,7 @@ export async function reconcileQuizProfileLevel(sb, userId, profile) {
     if (updateError.code === '23514' || message.includes('quiz_profiles_current_level_check')) {
       return {
         ...profile,
-        current_level: Math.max(1, Number(profile.current_level || 1)),
+        current_level: Math.max(1, Math.min(20, unlockedLevel)),
       };
     }
     throw updateError;

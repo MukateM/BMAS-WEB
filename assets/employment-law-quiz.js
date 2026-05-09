@@ -2,6 +2,7 @@
 const PASS_THRESHOLD = 0.5;
 const QUESTIONS_PER_ATTEMPT = 12;
 const MANUAL_SESSION_STORAGE_KEY = 'quizSession';
+const TIMED_LEVEL_DURATION_MS = 5 * 60 * 1000;
 
 const DEV_MODE = (window.location.hostname === 'localhost' && window.location.port === '3000')
   || new URL(window.location).searchParams.has('devMode');
@@ -373,8 +374,8 @@ async function createSupabaseAdapter(config) {
       if (error) throw error;
       return data;
     },
-    async getCurrentLeaderboard(targetMonthKey) {
-      const response = await fetch(`/api/quiz-leaderboard?monthKey=${encodeURIComponent(targetMonthKey)}`, {
+    async getCurrentLeaderboard() {
+      const response = await fetch('/api/quiz-leaderboard', {
         cache: 'no-store',
       });
       if (!response.ok) {
@@ -626,7 +627,7 @@ function renderLevels() {
 }
 
 function renderLeaderboard() {
-  els.leaderboardMonth.textContent = formatMonthKey(monthKey());
+  els.leaderboardMonth.textContent = 'All-time rankings';
   if (state.isRefreshing && !state.leaderboard.length) {
     els.leaderboardList.innerHTML = `
       <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 text-sm text-slate-600">
@@ -639,7 +640,7 @@ function renderLeaderboard() {
   if (!state.leaderboard.length) {
     els.leaderboardList.innerHTML = `
       <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-600">
-        No scores have been posted for this month yet.
+        No leaderboard scores have been posted yet.
       </div>
     `;
     return;
@@ -764,7 +765,7 @@ function renderResult() {
           <p class="mt-2 text-sm text-slate-600">${state.lastResult.correctCount} out of ${state.lastResult.totalQuestions} correct</p>
         </div>
         <div class="rounded-2xl ${state.lastResult.passed ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'} px-4 py-3 text-sm font-semibold">
-          ${state.lastResult.passed ? 'Level cleared. The next level is now unlocked if available. Further retries are practice only once this level has scored for the month.' : 'You can retry this level again. Leaderboard credit is only awarded on the first pass for each level this month.'}
+          ${state.lastResult.passed ? 'Level cleared. The next level is now unlocked if available. Further retries are practice only after this level has already been scored.' : 'You can retry this level again. Leaderboard credit is only awarded on the first pass for each level.'}
         </div>
       </div>
     </div>
@@ -805,13 +806,13 @@ function renderAll() {
 async function refreshSecondaryData() {
   if (!state.session) {
     state.attempts = [];
-    state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
+    state.leaderboard = await state.adapter.getCurrentLeaderboard();
     return;
   }
 
   const [attempts, leaderboard] = await Promise.all([
     state.adapter.getAttempts(state.session.user.id),
-    state.adapter.getCurrentLeaderboard(monthKey()),
+    state.adapter.getCurrentLeaderboard(),
   ]);
 
   state.attempts = attempts;
@@ -824,7 +825,7 @@ async function primeSessionData() {
     if (!state.session) {
       state.profile = null;
       state.attempts = [];
-      state.leaderboard = await state.adapter.getCurrentLeaderboard(monthKey());
+      state.leaderboard = await state.adapter.getCurrentLeaderboard();
       return;
     }
 
@@ -901,7 +902,7 @@ async function startLevel(level) {
     state.attemptSessionId = attemptSessionId;
     state.startedAt = Date.now();
     
-    // Set up timer for timed levels (600 seconds = 10 minutes)
+    // Set up timer for timed levels (300 seconds = 5 minutes)
     const levelMeta = quizLevels.find(item => item.level === level);
     if (levelMeta?.timed && expiresAt) {
       state.timerEndsAt = new Date(expiresAt).getTime();
@@ -923,7 +924,7 @@ async function startLevel(level) {
         }
       }, 500);
     } else if (levelMeta?.timed && legacyMode) {
-      state.timerEndsAt = Date.now() + 600_000;
+      state.timerEndsAt = Date.now() + TIMED_LEVEL_DURATION_MS;
       if (state.timerInterval) clearInterval(state.timerInterval);
       state.timerInterval = setInterval(() => {
         const timerElement = document.getElementById('quizTimer');
@@ -1025,12 +1026,36 @@ async function submitActiveAttempt() {
       monthKey:       monthKey(),
     };
 
-    // Refresh profile so unlocked level updates locally
-    if (result.passed) {
-      state.profile = await state.adapter.ensureProfile(state.session);
+    const completedLevel = state.activeLevel;
+    const completedMonthKey = monthKey();
+    const completedDurationSeconds = Math.max(1, Math.round((Date.now() - state.startedAt) / 1000));
+
+    state.attempts = [
+      {
+        level: completedLevel,
+        month_key: completedMonthKey,
+        passed: result.passed,
+        score: Number(result.raw_score || 0),
+        correct_count: Number(result.correct_count || 0),
+        total_questions: Number(result.total_questions || state.activeQuestions.length || 0),
+        duration_seconds: completedDurationSeconds,
+        submitted_at: new Date().toISOString(),
+      },
+      ...state.attempts,
+    ];
+
+    if (state.profile && Number.isFinite(Number(result.profile_current_level))) {
+      state.profile = {
+        ...state.profile,
+        current_level: Math.max(
+          Number(state.profile.current_level || 1),
+          Number(result.profile_current_level || 1),
+        ),
+      };
     }
 
     cancelLevel();
+    renderAll();
     await refreshData();
     renderAll();
   } catch (error) {
@@ -1232,12 +1257,12 @@ function downloadLeaderboardFlyer() {
 
     ctx.fillStyle = colors.muted;
     ctx.font = '18px Arial, sans-serif';
-    ctx.fillText('Monthly leaderboard snapshot for top performers', 236, 218);
+    ctx.fillText('All-time leaderboard snapshot for top performers', 236, 218);
 
     drawRoundedRect(236, 246, 244, 46, 23, colors.mist);
     ctx.fillStyle = colors.ink;
     ctx.font = 'bold 22px Arial, sans-serif';
-    ctx.fillText(formatMonthKey(monthKey()), 262, 276);
+    ctx.fillText('All-time leaderboard', 262, 276);
 
     ctx.fillStyle = colors.amber;
     ctx.font = 'bold 18px Arial, sans-serif';
@@ -1245,7 +1270,7 @@ function downloadLeaderboardFlyer() {
 
     ctx.fillStyle = colors.muted;
     ctx.font = '16px Arial, sans-serif';
-    ctx.fillText('Best score each month ranks first, then level reached and time used.', 90, 442);
+    ctx.fillText('Ranked by levels cleared, accuracy, and time used.', 90, 442);
 
     let yPos = 484;
     top5.forEach((entry, index) => {

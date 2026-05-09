@@ -323,12 +323,23 @@ export default async function handler(req, res) {
       if (sessionUpdateError) throw sessionUpdateError;
     }
 
+    let reconciledProfile = profile;
+
     if (passed && effectiveLevel < 20 && Number(profile.current_level || 1) === effectiveLevel) {
-      await sb
+      const { data: advancedProfile, error: advanceError } = await sb
         .from('quiz_profiles')
         .update({ current_level: effectiveLevel + 1, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+
+      if (advanceError) throw advanceError;
+      if (advancedProfile) {
+        reconciledProfile = advancedProfile;
+      }
     }
+
+    reconciledProfile = await reconcileQuizProfileLevel(sb, userId, reconciledProfile);
 
     return res.status(200).json({
       correct_count: correctCount,
@@ -336,6 +347,7 @@ export default async function handler(req, res) {
       raw_score: rawScore,
       passed,
       details,
+      profile_current_level: Number(reconciledProfile?.current_level || profile.current_level || 1),
     });
   } catch (err) {
     console.error('[quiz-submit] Error:', {
