@@ -1,37 +1,20 @@
 {
   "name": "bmas-web",
   "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Company site.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.105.1",
-    "bcryptjs": "^3.0.3",
-    "esbuild": "^0.28.0",
-    "tailwindcss": "^3.4.13"
-  },
-  "version": "1.0.0",
-  "description": "Company site.",
-  "main": "tailwind.config.js",
-  "directories": {
-    "doc": "docs"
+    "@supabase/supabase-js": "^2.105.1"
   },
   "devDependencies": {
-    "vite": "^8.0.11"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MukateM/BMAS-WEB.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/MukateM/BMAS-WEB/issues"
-  },
-  "homepage": "https://github.com/MukateM/BMAS-WEB#readme"
+    "vite": "^6.3.5",
+    "esbuild": "^0.28.0",
+    "tailwindcss": "^3.4.13"
+  }
 }
-

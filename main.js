@@ -1,3 +1,2 @@
-import './supabase-client.js'
-import './manual-auth.js'
-import './employment-law-quiz.js'
+import './assets/manual-auth.js'
+import './assets/employment-law-quiz.js'

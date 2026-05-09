@@ -1,6 +1,12 @@
 export default {
   build: {
-    sourcemap: false,  // its some shit in here bro lol
-    minify: 'esbuild'
+    sourcemap: false,
+    minify: 'esbuild',
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        quiz: 'employment-law-quiz.html'
+      }
+    }
   }
 }
