@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2026-03-17",
+  "jobs": [],
+  "jobTemplate": {
+    "id": "unique-id",
+    "title": "Role Title",
+    "company": "Company name or 'Confidential (BMAS Client)'",
+    "logo": { "src": "assets/clients/client-01.png", "alt": "Company logo" },
+    "location": "Lusaka, Zambia",
+    "workType": "Full-time",
+    "workMode": "On-site | Hybrid | Remote",
+    "postedAt": "2026-03-17",
+    "applyBy": "2026-04-15",
+    "summary": "1–2 sentence summary of the role.",
+    "highlights": ["Short highlight", "Another highlight"],
+    "responsibilities": ["Responsibility 1", "Responsibility 2"],
+    "requirements": ["Requirement 1", "Requirement 2"]
+  }
+}
