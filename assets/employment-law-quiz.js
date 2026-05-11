@@ -112,8 +112,22 @@ function getAuthHeaders() {
   const token = state.session?.access_token || '';
   return {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+}
+
+async function readJsonResponse(response, fallbackMessage) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error(fallbackMessage);
+  }
+
+  try {
+    return await response.json();
+  } catch (_error) {
+    throw new Error(fallbackMessage);
+  }
 }
 
 function getUserInitials(session, profile) {
@@ -298,15 +312,14 @@ async function createSupabaseAdapter(config) {
         headers: getAuthHeaders(),
         cache: 'no-store',
       });
+      const payload = await readJsonResponse(response, 'Quiz API returned an invalid response.');
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        let message = error.error || 'Unable to load your quiz profile right now.';
+        let message = payload.error || 'Unable to load your quiz profile right now.';
 
         throw new Error(message);
       }
 
-      const payload = await response.json();
       return payload.profile;
     },
     async updateProfileLevel(userId, currentLevel) {
@@ -377,12 +390,12 @@ async function createSupabaseAdapter(config) {
     async getCurrentLeaderboard() {
       const response = await fetch('/api/quiz-leaderboard', {
         cache: 'no-store',
+        headers: { Accept: 'application/json' },
       });
+      const payload = await readJsonResponse(response, 'Quiz leaderboard API returned an invalid response.');
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Unable to load leaderboard.');
+        throw new Error(payload.error || 'Unable to load leaderboard.');
       }
-      const payload = await response.json();
       return payload.leaderboard || [];
     },
     onAuthStateChange(handler) {
@@ -394,11 +407,18 @@ async function createSupabaseAdapter(config) {
 }
 
 async function getAppConfig() {
-  const response = await fetch('/api/quiz-config', { cache: 'no-store' });
+  const response = await fetch('/api/quiz-config', {
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
+  });
+  const payload = await readJsonResponse(
+    response,
+    'Quiz API is unavailable. Start the app through Vercel so /api routes are served.',
+  );
   if (!response.ok) {
-    throw new Error('Quiz configuration could not be loaded. Please contact the site administrator.');
+    throw new Error(payload.error || 'Quiz configuration could not be loaded. Please contact the site administrator.');
   }
-  return response.json();
+  return payload;
 }
 
 function readStoredManualSession() {
@@ -892,12 +912,13 @@ async function startLevel(level) {
       }),
     });
 
+    const { questions, attemptSessionId, expiresAt, legacyMode, error } = await readJsonResponse(
+      res,
+      'Quiz questions API returned an invalid response.',
+    );
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Failed to load questions (${res.status})`);
+      throw new Error(error || `Failed to load questions (${res.status})`);
     }
-
-    const { questions, attemptSessionId, expiresAt, legacyMode } = await res.json();
     state.activeQuestions = questions;
     state.attemptSessionId = attemptSessionId;
     state.startedAt = Date.now();
@@ -994,12 +1015,10 @@ async function submitActiveAttempt() {
       }),
     });
 
+    const result = await readJsonResponse(res, 'Quiz submit API returned an invalid response.');
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Submission failed (${res.status})`);
+      throw new Error(result.error || `Submission failed (${res.status})`);
     }
-
-    const result = await res.json();
 
     // Merge question text back into details for the result panel
     const details = result.details.map((d, i) => ({

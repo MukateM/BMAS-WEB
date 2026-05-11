@@ -10,6 +10,7 @@ import { getAuthenticatedQuizUser } from './_lib/quiz-env.js';
 import { reconcileQuizProfileLevel } from './_lib/quiz-progress.js';
 import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
 import { quizLevels } from '../assets/employment-law-quiz-data.js';
+import { randomUUID } from 'node:crypto';
 
 const QUESTIONS_PER_ATTEMPT = 12;
 const DEFAULT_SESSION_WINDOW_MS = 30 * 60 * 1000;
@@ -131,14 +132,9 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'No questions found for this level.' });
     }
 
-    const seed = `${userId}:${level}:${monthKeyValue}`;
-    const shuffled = seededShuffle(rows, seed);
-    const selected = shuffled.slice(0, Math.min(QUESTIONS_PER_ATTEMPT, shuffled.length));
-    const questionIds = selected.map((question) => question.id);
-
     const { data: existingSessions, error: sessionLookupError } = await sb
       .from('quiz_attempt_sessions')
-      .select('id, expires_at')
+      .select('id, expires_at, question_ids')
       .eq('user_id', userId)
       .eq('level', level)
       .eq('month_key', monthKeyValue)
@@ -146,51 +142,61 @@ export default async function handler(req, res) {
       .order('issued_at', { ascending: false })
       .limit(1);
 
-    const legacyMode = Boolean(sessionLookupError && String(sessionLookupError.message || '').includes('quiz_attempt_sessions'));
-
-    if (sessionLookupError && !legacyMode) {
+    if (sessionLookupError) {
       console.error('[quiz-questions] Session lookup error:', sessionLookupError);
       throw sessionLookupError;
     }
 
-    const existingSession = legacyMode ? null : (existingSessions?.[0] || null);
+    const existingSession = existingSessions?.[0] || null;
     const sessionExpired = existingSession?.expires_at
       ? new Date(existingSession.expires_at).getTime() < Date.now()
       : false;
     const issuedAt = new Date().toISOString();
     const sessionWindowMs = isTimedLevel(level) ? TIMED_SESSION_WINDOW_MS : DEFAULT_SESSION_WINDOW_MS;
     const expiresAt = new Date(Date.now() + sessionWindowMs).toISOString();
-    let attemptSessionId = existingSession?.id || null;
+    const attemptSessionId = existingSession && !sessionExpired ? existingSession.id : randomUUID();
+    const questionsById = new Map(rows.map((question) => [question.id, question]));
+    const existingQuestionIds = Array.isArray(existingSession?.question_ids) ? existingSession.question_ids : [];
+    const canReuseExistingQuestions = Boolean(
+      existingSession &&
+      !sessionExpired &&
+      existingQuestionIds.length > 0 &&
+      existingQuestionIds.every((questionId) => questionsById.has(questionId)),
+    );
+    const selected = canReuseExistingQuestions
+      ? existingQuestionIds.map((questionId) => questionsById.get(questionId))
+      : seededShuffle(rows, `${userId}:${level}:${monthKeyValue}:${attemptSessionId}`)
+        .slice(0, Math.min(QUESTIONS_PER_ATTEMPT, rows.length));
+    const questionIds = selected.map((question) => question.id);
 
-    if (!legacyMode && !attemptSessionId) {
-      const { data: createdSession, error: createSessionError } = await sb
+    if (!existingSession) {
+      const { error: createSessionError } = await sb
         .from('quiz_attempt_sessions')
         .insert({
+          id: attemptSessionId,
           user_id: userId,
           level,
           month_key: monthKeyValue,
           question_ids: questionIds,
           issued_at: issuedAt,
           expires_at: expiresAt,
-        })
-        .select('id')
-        .single();
+        });
 
       if (createSessionError) {
         console.error('[quiz-questions] Session create error:', createSessionError);
         throw createSessionError;
       }
-
-      attemptSessionId = createdSession.id;
-    } else if (!legacyMode && sessionExpired) {
+    } else if (sessionExpired) {
       const { error: updateSessionError } = await sb
         .from('quiz_attempt_sessions')
         .update({
+          id: attemptSessionId,
           question_ids: questionIds,
           issued_at: issuedAt,
           expires_at: expiresAt,
+          submitted_at: null,
         })
-        .eq('id', attemptSessionId);
+        .eq('id', existingSession.id);
 
       if (updateSessionError) {
         console.error('[quiz-questions] Session update error:', updateSessionError);
@@ -208,9 +214,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       questions,
-      attemptSessionId: legacyMode ? null : attemptSessionId,
-      expiresAt: legacyMode ? null : (sessionExpired || !existingSession ? expiresAt : existingSession.expires_at),
-      legacyMode,
+      attemptSessionId,
+      expiresAt: sessionExpired || !existingSession ? expiresAt : existingSession.expires_at,
       monthKey: monthKeyValue,
     });
   } catch (err) {

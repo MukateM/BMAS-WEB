@@ -69,15 +69,31 @@ function computePaye(taxableIncome) {
 }
 
 function normalizeAllowanceRates(allowanceRates) {
-  const housingRate = allowanceRates?.housingRate ?? 0.3;
-  const transportRate = allowanceRates?.transportRate ?? 0.1;
-  const lunchRate = allowanceRates?.lunchRate ?? 0.1;
+  const housingRate = Number(allowanceRates?.housingRate ?? 0.3);
+  const transportRate = Number(allowanceRates?.transportRate ?? 0.1);
+  const lunchRate = Number(allowanceRates?.lunchRate ?? 0.1);
   return {
     housingRate,
     transportRate,
     lunchRate,
     totalRate: housingRate + transportRate + lunchRate,
   };
+}
+
+function validateAllowanceRates(allowanceRates) {
+  if (!allowanceRates) return { ok: true };
+  if (typeof allowanceRates !== 'object' || Array.isArray(allowanceRates)) {
+    return { ok: false, error: 'allowanceRates must be an object.' };
+  }
+
+  for (const [key, value] of Object.entries(allowanceRates)) {
+    const numericValue = typeof value === 'string' ? Number(value) : value;
+    if (!Number.isFinite(numericValue) || numericValue < 0 || numericValue > 2) {
+      return { ok: false, error: `${key} must be a finite number between 0 and 2.` };
+    }
+  }
+
+  return { ok: true };
 }
 
 function deriveFromGrossPay(grossPay, allowanceRates) {
@@ -296,6 +312,11 @@ export default async function handler(req, res) {
   let computedBasicPay = basicPay;
   let computedTaxableAllowances = taxableAllowances;
   const allowanceRates = payload.allowanceRates || payload.standardAllowances || null;
+  const allowanceRatesValidation = validateAllowanceRates(allowanceRates);
+  if (!allowanceRatesValidation.ok) {
+    sendJson(res, 400, { ok: false, error: allowanceRatesValidation.error }, origin);
+    return;
+  }
   let allowancesBreakdown = null;
   let grossPayStandard = null;
 

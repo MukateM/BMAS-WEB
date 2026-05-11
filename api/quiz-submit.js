@@ -79,32 +79,6 @@ async function insertQuizAttempt(sb, payload, attemptDisplayName) {
   return legacyInsert.error || null;
 }
 
-function hashSeed(input) {
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function seededShuffle(items, seedText) {
-  let state = hashSeed(seedText) || 1;
-  const rand = () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rand() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -137,10 +111,10 @@ export default async function handler(req, res) {
     return res.status(auth.status).json({ error: auth.error });
   }
 
-  const { attemptSessionId, answers, level, monthKey, durationSeconds: clientDurationSeconds } = req.body || {};
+  const { attemptSessionId, answers } = req.body || {};
   const userId = user.id;
 
-  if ((!attemptSessionId && (!level || !monthKey)) || !answers) {
+  if (!attemptSessionId || !answers) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
 
@@ -153,64 +127,39 @@ export default async function handler(req, res) {
   }
 
   try {
-    let { data: sessionRow, error: sessionError } = await sb
+    const { data: sessionRow, error: sessionError } = await sb
       .from('quiz_attempt_sessions')
       .select('id, user_id, level, month_key, question_ids, issued_at, submitted_at, expires_at')
       .eq('id', attemptSessionId)
       .eq('user_id', userId)
       .maybeSingle();
 
-    const legacyMode = Boolean(sessionError && String(sessionError.message || '').includes('quiz_attempt_sessions'));
-    if (sessionError && !legacyMode) throw sessionError;
+    if (sessionError) throw sessionError;
 
     let questionIds = [];
-    let effectiveLevel = level;
-    let effectiveMonthKey = monthKey;
-    let effectiveDurationSeconds = Math.max(1, Math.round(clientDurationSeconds || 1));
-
-    if (!legacyMode) {
-      if (!sessionRow) {
-        return res.status(404).json({ error: 'Quiz attempt session not found.' });
-      }
-
-      if (sessionRow.submitted_at) {
-        return res.status(409).json({ error: 'This quiz session has already been submitted. Please start the level again.' });
-      }
-
-      if (sessionRow.expires_at && new Date(sessionRow.expires_at).getTime() < Date.now()) {
-        return res.status(410).json({ error: 'This quiz session has expired. Please start the level again.' });
-      }
-
-      questionIds = Array.isArray(sessionRow.question_ids) ? sessionRow.question_ids : [];
-      if (!questionIds.length || questionIds.length !== answers.length) {
-        return res.status(400).json({ error: 'Answer count does not match the issued question set.' });
-      }
-
-      effectiveLevel = sessionRow.level;
-      effectiveMonthKey = sessionRow.month_key;
-      effectiveDurationSeconds = Math.max(
-        1,
-        Math.round((Date.now() - new Date(sessionRow.issued_at).getTime()) / 1000),
-      );
-    } else {
-      const { data: legacyRows, error: legacyQuestionsError } = await sb
-        .from('quiz_questions')
-        .select('id, level')
-        .eq('level', level)
-        .eq('active', true);
-
-      if (legacyQuestionsError) throw legacyQuestionsError;
-      if (!legacyRows || legacyRows.length === 0) {
-        return res.status(404).json({ error: 'No questions found for this level.' });
-      }
-
-      const seed = `${userId}:${level}:${monthKey}`;
-      const selected = seededShuffle(legacyRows, seed).slice(0, Math.min(12, legacyRows.length));
-      questionIds = selected.map((question) => question.id);
-      if (questionIds.length !== answers.length) {
-        return res.status(400).json({ error: 'Answer count does not match the issued question set.' });
-      }
+    if (!sessionRow) {
+      return res.status(404).json({ error: 'Quiz attempt session not found.' });
     }
+
+    if (sessionRow.submitted_at) {
+      return res.status(409).json({ error: 'This quiz session has already been submitted. Please start the level again.' });
+    }
+
+    if (sessionRow.expires_at && new Date(sessionRow.expires_at).getTime() < Date.now()) {
+      return res.status(410).json({ error: 'This quiz session has expired. Please start the level again.' });
+    }
+
+    questionIds = Array.isArray(sessionRow.question_ids) ? sessionRow.question_ids : [];
+    if (!questionIds.length || questionIds.length !== answers.length) {
+      return res.status(400).json({ error: 'Answer count does not match the issued question set.' });
+    }
+
+    const effectiveLevel = sessionRow.level;
+    const effectiveMonthKey = sessionRow.month_key;
+    const effectiveDurationSeconds = Math.max(
+      1,
+      Math.round((Date.now() - new Date(sessionRow.issued_at).getTime()) / 1000),
+    );
 
     let { data: profile, error: profileError } = await sb
       .from('quiz_profiles')
@@ -313,15 +262,13 @@ export default async function handler(req, res) {
       throw insertError;
     }
 
-    if (!legacyMode) {
-      const { error: sessionUpdateError } = await sb
-        .from('quiz_attempt_sessions')
-        .update({ submitted_at: new Date().toISOString() })
-        .eq('id', sessionRow.id)
-        .eq('user_id', userId);
+    const { error: sessionUpdateError } = await sb
+      .from('quiz_attempt_sessions')
+      .update({ submitted_at: new Date().toISOString() })
+      .eq('id', sessionRow.id)
+      .eq('user_id', userId);
 
-      if (sessionUpdateError) throw sessionUpdateError;
-    }
+    if (sessionUpdateError) throw sessionUpdateError;
 
     let reconciledProfile = profile;
 
