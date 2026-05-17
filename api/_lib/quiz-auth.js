@@ -16,6 +16,29 @@ function isMissingDisplayNameColumnError(error) {
   return String(error?.message || '').includes("'display_name' column");
 }
 
+function normalizeAuthErrorMessage(error) {
+  return String(error?.message || error?.error_description || '').trim();
+}
+
+function isExistingAuthUserError(error) {
+  const message = normalizeAuthErrorMessage(error).toLowerCase();
+  return (
+    message.includes('already') ||
+    message.includes('registered') ||
+    message.includes('exists')
+  );
+}
+
+function isPasswordRejectedError(error) {
+  const message = normalizeAuthErrorMessage(error).toLowerCase();
+  return (
+    message.includes('password') ||
+    message.includes('pwned') ||
+    message.includes('compromised') ||
+    message.includes('weak')
+  );
+}
+
 export function normalizeEmail(email = '') {
   return String(email || '').trim().toLowerCase();
 }
@@ -165,6 +188,7 @@ export async function ensureQuizProfile(adminClient, payload) {
   const institution = String(payload.institution || payload.institution_name || '').trim();
   const normalizedEmail = normalizeEmail(payload.email);
   const displayName = payload.display_name || payload.full_name || normalizedEmail || 'Quiz member';
+  const alias = `${displayName} ${String(userId).slice(0, 6)}`.slice(0, 32);
 
   const { data: existing, error: existingError } = await adminClient
     .from('quiz_profiles')
@@ -184,18 +208,20 @@ export async function ensureQuizProfile(adminClient, payload) {
 
   const profilePayload = {
     user_id: userId,
+    alias,
     display_name: displayName,
     full_name: payload.full_name,
     email: normalizedEmail,
     user_type: dbUserType,
     institution,
+    institution_name: institution,
     current_level: preservedLevel,
     updated_at: new Date().toISOString(),
   };
 
   const legacyProfilePayload = {
     user_id: userId,
-    alias: `${displayName} ${String(userId).slice(0, 6)}`.slice(0, 32),
+    alias,
     full_name: payload.full_name,
     email: normalizedEmail,
     user_type: dbUserType,
@@ -315,8 +341,7 @@ export async function createManualQuizUser({ fullName, email, userType, institut
   });
 
   if (createUserError) {
-    const message = String(createUserError.message || '');
-    if (message.toLowerCase().includes('already')) {
+    if (isExistingAuthUserError(createUserError)) {
       return {
         ok: false,
         status: 409,
@@ -324,7 +349,19 @@ export async function createManualQuizUser({ fullName, email, userType, institut
       };
     }
 
-    throw createUserError;
+    if (isPasswordRejectedError(createUserError)) {
+      return {
+        ok: false,
+        status: 400,
+        error: normalizeAuthErrorMessage(createUserError) || 'Please choose a stronger password.',
+      };
+    }
+
+    return {
+      ok: false,
+      status: 400,
+      error: normalizeAuthErrorMessage(createUserError) || 'Unable to create account with those details.',
+    };
   }
 
   const authUser = createdUser?.user;
@@ -355,6 +392,11 @@ export async function createManualQuizUser({ fullName, email, userType, institut
           details: 'Run the latest Supabase quiz schema migration before using manual signup.',
         });
       }
+      if (manualUserError.code === '23505') {
+        throw Object.assign(new Error('An account already exists for this email. Please sign in instead.'), {
+          status: 409,
+        });
+      }
       throw manualUserError;
     }
 
@@ -369,6 +411,13 @@ export async function createManualQuizUser({ fullName, email, userType, institut
     });
   } catch (error) {
     await adminClient.auth.admin.deleteUser(authUser.id).catch(() => null);
+    if (error?.status === 409) {
+      return {
+        ok: false,
+        status: 409,
+        error: error.message || 'An account already exists for this email. Please sign in instead.',
+      };
+    }
     throw error;
   }
 
