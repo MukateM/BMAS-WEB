@@ -95,12 +95,15 @@ create index if not exists leaderboard_monthly_snapshot_month_key_idx on public.
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public, pg_temp
 as $$
 begin
   new.updated_at = now();
   return new;
 end;
 $$;
+
+revoke execute on function public.set_updated_at() from public, anon, authenticated;
 
 drop trigger if exists quiz_profiles_set_updated_at on public.quiz_profiles;
 create trigger quiz_profiles_set_updated_at
@@ -192,6 +195,7 @@ create or replace function public.capture_monthly_leaderboard(target_month date 
 returns void
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 begin
   delete from public.leaderboard_monthly_snapshot where month_key = target_month;
@@ -238,3 +242,6 @@ $$;
 
 comment on function public.capture_monthly_leaderboard(date)
 is 'Run this at month end with Supabase cron or a scheduled function to archive monthly winners.';
+
+revoke execute on function public.capture_monthly_leaderboard(date) from public, anon, authenticated;
+grant execute on function public.capture_monthly_leaderboard(date) to service_role;

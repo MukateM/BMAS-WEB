@@ -66,7 +66,7 @@ create or replace function public.score_quiz_attempt(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_result      jsonb := '[]'::jsonb;
@@ -75,18 +75,17 @@ declare
   v_question    record;
   v_answer      smallint;
   v_is_correct  boolean;
-  i             int;
 begin
-  for i in 1 .. v_total loop
+  for question_index in 1 .. v_total loop
     select * into v_question
     from quiz_questions
-    where id = p_question_ids[i];
+    where id = p_question_ids[question_index];
 
     if not found then
       raise exception 'Question not found: %', p_question_ids[i];
     end if;
 
-    v_answer     := p_answers[i];
+    v_answer     := p_answers[question_index];
     v_is_correct := (v_answer is not null and v_answer = v_question.correct_index);
 
     if v_is_correct then
@@ -121,6 +120,7 @@ $$;
 
 -- Grant execute to authenticated users (called server-side via service role anyway,
 -- but this keeps things clean)
+revoke execute on function public.score_quiz_attempt(text[], smallint[]) from public, anon, authenticated;
 grant execute on function public.score_quiz_attempt(text[], smallint[]) to service_role;
 
 -- ── 4. quiz_profiles (if not already created) ────────────────

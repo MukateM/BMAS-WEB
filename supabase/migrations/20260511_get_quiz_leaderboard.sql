@@ -13,7 +13,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
   with first_passes as (
     select distinct on (qa.user_id, qa.level)
@@ -77,4 +77,5 @@ as $$
   limit greatest(1, least(coalesce(p_limit, 10), 50));
 $$;
 
+revoke execute on function public.get_quiz_leaderboard(integer) from public, anon, authenticated;
 grant execute on function public.get_quiz_leaderboard(integer) to service_role;
