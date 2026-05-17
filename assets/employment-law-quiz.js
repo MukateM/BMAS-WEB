@@ -1017,6 +1017,13 @@ async function submitActiveAttempt() {
 
     const result = await readJsonResponse(res, 'Quiz submit API returned an invalid response.');
     if (!res.ok) {
+      if (res.status === 409) {
+        cancelLevel();
+        await refreshData();
+        renderAll();
+        window.alert(result.error || 'This quiz attempt was already submitted. Please start the level again.');
+        return;
+      }
       throw new Error(result.error || `Submission failed (${res.status})`);
     }
 

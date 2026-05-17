@@ -294,6 +294,11 @@
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 409) {
+          showSignIn(email);
+          setMessage(payload.error || 'An account already exists for this email. Please sign in instead.', 'error');
+          return;
+        }
         throw new Error(payload.error || 'Unable to create account.');
       }
 

@@ -299,7 +299,7 @@ export async function createManualQuizUser({ fullName, email, userType, institut
     return {
       ok: false,
       status: 409,
-      error: 'We could not create an account with those details. Please sign in or try again later.',
+      error: 'An account already exists for this email. Please sign in instead.',
     };
   }
 
@@ -320,7 +320,7 @@ export async function createManualQuizUser({ fullName, email, userType, institut
       return {
         ok: false,
         status: 409,
-        error: 'We could not create an account with those details. Please sign in or try again later.',
+        error: 'An account already exists for this email. Please sign in instead.',
       };
     }
 
