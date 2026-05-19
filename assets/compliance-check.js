@@ -505,12 +505,14 @@ function buildReportHtml(result) {
           .watermark {
             height: 430px;
             left: 50%;
-            opacity: 0.14;
+            opacity: 0.24;
             position: fixed;
             top: 50%;
             transform: translate(-50%, -50%) rotate(-12deg);
             width: 420px;
             z-index: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .report-content {
             position: relative;
@@ -558,7 +560,6 @@ function buildReportHtml(result) {
             This self-assessment is general guidance only and is not a formal audit or legal opinion. Minimum wage and statutory rules should be confirmed against current law before decisions are made.
           </footer>
         </div>
-        <script>window.addEventListener('load', () => window.print());</script>
       </body>
     </html>`;
 }
@@ -572,6 +573,10 @@ function savePdfReport(result) {
   reportWindow.document.open();
   reportWindow.document.write(buildReportHtml(result));
   reportWindow.document.close();
+  window.setTimeout(() => {
+    reportWindow.focus();
+    reportWindow.print();
+  }, 450);
 }
 
 function getInputValue(id) {
