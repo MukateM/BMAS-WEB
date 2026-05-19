@@ -1,6 +1,7 @@
 import { resolve } from 'path'
 
 const localApiRoutes = {
+  '/api/compliance-lead': './api/compliance-lead.js',
   '/api/payroll': './api/payroll.js',
   '/api/quiz-config': './api/quiz-config.js',
   '/api/quiz-leaderboard': './api/quiz-leaderboard.js',
@@ -100,6 +101,7 @@ export default {
         market: resolve(__dirname, 'market.html'),
         services: resolve(__dirname, 'services.html'),
         'why-us': resolve(__dirname, 'why-us.html'),
+        'compliance-check': resolve(__dirname, 'compliance-check.html'),
         'payroll-calculator': resolve(__dirname, 'payroll-calculator.html'),
       }
     }
