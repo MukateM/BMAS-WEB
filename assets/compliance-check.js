@@ -466,7 +466,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-function buildReportHtml(result) {
+function buildReportHtml(result, watermarkSrc) {
   const failuresHtml = result.failures.length
     ? result.failures
         .map(
@@ -505,7 +505,7 @@ function buildReportHtml(result) {
           .watermark {
             height: 430px;
             left: 50%;
-            opacity: 0.24;
+            opacity: 0.32;
             position: fixed;
             top: 50%;
             transform: translate(-50%, -50%) rotate(-12deg);
@@ -536,7 +536,7 @@ function buildReportHtml(result) {
         </style>
       </head>
       <body>
-        <img class="watermark" src="/bmas.png" alt="" />
+        <img class="watermark" src="${escapeHtml(watermarkSrc)}" alt="" />
         <div class="report-content">
           <header>
             <div class="label">Business Momentum Advisory Services</div>
@@ -564,19 +564,62 @@ function buildReportHtml(result) {
     </html>`;
 }
 
-function savePdfReport(result) {
+function imageToDataUrl(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(src);
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
+function waitForReportImages(reportWindow) {
+  const images = Array.from(reportWindow.document.images || []);
+  if (images.length === 0) return Promise.resolve();
+
+  return Promise.all(
+    images.map(
+      (img) =>
+        new Promise((resolve) => {
+          if (img.complete) {
+            resolve();
+            return;
+          }
+          img.onload = resolve;
+          img.onerror = resolve;
+        }),
+    ),
+  );
+}
+
+async function savePdfReport(result) {
   const reportWindow = window.open('', '_blank');
   if (!reportWindow) {
     window.print();
     return;
   }
+  const watermarkSrc = await imageToDataUrl('/bmas.png');
   reportWindow.document.open();
-  reportWindow.document.write(buildReportHtml(result));
+  reportWindow.document.write(buildReportHtml(result, watermarkSrc));
   reportWindow.document.close();
+
+  await waitForReportImages(reportWindow);
   window.setTimeout(() => {
     reportWindow.focus();
     reportWindow.print();
-  }, 450);
+  }, 250);
 }
 
 function getInputValue(id) {
