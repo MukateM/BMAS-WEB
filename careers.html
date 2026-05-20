@@ -84,6 +84,11 @@
       We recruit for our clients and sometimes for BMAS. Browse open roles and apply directly through BMAS.
     </p>
 
+    <div class="mt-5 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      Applications for the listed client vacancies close on 30 May 2026. Please email applications to
+      <a class="font-semibold hover:text-amber-800" href="mailto:bmasrecruitment@gmail.com">bmasrecruitment@gmail.com</a>.
+    </div>
+
     <div id="jobsBoard" data-jobs-src="assets/jobs.json" class="mt-6">
       <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
@@ -105,10 +110,31 @@
       <div id="jobsList" class="mt-4 grid md:grid-cols-2 gap-4"></div>
     </div>
 
+    <div class="mt-8 rounded border border-amber-200 bg-amber-50 p-5">
+      <h2 class="text-xl font-bold text-slate-900">How to Apply for Listed Roles</h2>
+      <p class="mt-2 text-sm text-slate-700">
+        Applications for the client vacancies above should be emailed to
+        <a class="font-medium text-amber-700 hover:text-amber-800" href="mailto:bmasrecruitment@gmail.com">bmasrecruitment@gmail.com</a>.
+        The deadline is 30 May 2026.
+      </p>
+      <ul class="mt-4 list-disc pl-5 text-sm text-slate-700 space-y-1">
+        <li>Application letter clearly stating the position applied for.</li>
+        <li>Updated CV.</li>
+        <li>Copies of relevant qualifications.</li>
+        <li>NRC copy or valid identification.</li>
+        <li>At least two traceable referees.</li>
+        <li>Any relevant certificates, licences, or professional documents.</li>
+      </ul>
+    </div>
+
     <div class="mt-10 border-t pt-8">
       <h2 class="text-xl font-bold text-slate-900">General Application</h2>
       <p class="mt-2 text-sm text-slate-600">
-        Not seeing the right role? Send a general application and we will reach out when something matches.
+        Not seeing the right role? Use this form for unsolicited applications and we will reach out when something matches.
+      </p>
+      <p class="mt-2 rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+        Do not use this form for the listed client vacancies above. Those applications must be emailed to
+        <a class="font-medium text-amber-700 hover:text-amber-800" href="mailto:bmasrecruitment@gmail.com">bmasrecruitment@gmail.com</a>.
       </p>
 
       <form id="careersForm" class="mt-6 space-y-4 bg-slate-50 p-4 rounded"
@@ -197,67 +223,6 @@
         <button type="submit" class="px-4 py-2 bg-amber-400 text-slate-900 rounded">Send</button>
         <button id="clearConsult" type="button" class="px-4 py-2 border rounded">Clear</button>
       </div>
-    </form>
-  </div>
-</div>
-
-<div id="jobApplyModal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="jobApplyTitle">
-  <div class="absolute inset-0 modal-backdrop z-0" id="jobApplyBackdrop"></div>
-  <div class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
-    <div class="flex justify-between items-center">
-      <h3 class="text-lg font-semibold" id="jobApplyTitle">Apply</h3>
-      <button id="closeJobApply" class="text-slate-600" type="button" aria-label="Close dialog">&times;</button>
-    </div>
-
-    <p class="mt-2 text-sm text-slate-600">
-      Applying for: <span id="jobApplyRole" class="font-medium text-slate-900"></span>
-    </p>
-
-    <form id="jobApplyForm" action="https://formspree.io/f/xgvpjpbe" method="POST" enctype="multipart/form-data" class="mt-4 space-y-3">
-      <p class="hidden">
-        <label>Don't fill this out: <input name="bot-field" /></label>
-      </p>
-
-      <input type="hidden" id="jobId" name="Job ID" />
-      <input type="hidden" id="jobTitle" name="Job Title" />
-      <input type="hidden" id="jobCompany" name="Company" />
-      <input type="hidden" id="jobLocation" name="Job Location" />
-
-      <div class="grid md:grid-cols-2 gap-3">
-        <div>
-          <label for="appName" class="block text-sm font-medium">Full Name</label>
-          <input id="appName" name="Applicant Name" required autocomplete="name" class="mt-1 w-full rounded border px-3 py-2" />
-        </div>
-        <div>
-          <label for="appEmail" class="block text-sm font-medium">Email</label>
-          <input id="appEmail" name="Applicant Email" type="email" required autocomplete="email" class="mt-1 w-full rounded border px-3 py-2" />
-        </div>
-        <div>
-          <label for="appPhone" class="block text-sm font-medium">Phone</label>
-          <input id="appPhone" name="Applicant Phone" autocomplete="tel" class="mt-1 w-full rounded border px-3 py-2" />
-        </div>
-        <div>
-          <label for="appLinkedIn" class="block text-sm font-medium">LinkedIn / Portfolio (optional)</label>
-          <input id="appLinkedIn" name="LinkedIn / Portfolio" class="mt-1 w-full rounded border px-3 py-2" placeholder="https://..." />
-        </div>
-      </div>
-
-      <div>
-        <label for="appMessage" class="block text-sm font-medium">Message (optional)</label>
-        <textarea id="appMessage" name="Message" rows="4" class="mt-1 w-full rounded border px-3 py-2" placeholder="Short note..."></textarea>
-      </div>
-
-      <div>
-        <label for="appCv" class="block text-sm font-medium">Upload CV (optional)</label>
-        <input id="appCv" name="CV" type="file" accept=".pdf,.doc,.docx" class="mt-1" />
-        <p class="mt-1 text-xs text-slate-500">Accepted: PDF, DOC, DOCX</p>
-      </div>
-
-      <div class="flex items-center gap-3 pt-2">
-        <button type="submit" class="px-4 py-2 bg-amber-400 text-slate-900 rounded font-medium">Submit Application</button>
-        <button id="clearJobApply" type="button" class="px-4 py-2 border rounded">Clear</button>
-      </div>
-      <p class="text-xs text-slate-500">BMAS will review and contact shortlisted candidates only.</p>
     </form>
   </div>
 </div>

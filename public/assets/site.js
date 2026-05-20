@@ -234,7 +234,6 @@
   }
 
   const jobsBoard = document.getElementById('jobsBoard');
-  const jobApplyModal = document.getElementById('jobApplyModal');
 
   // The Batcomputer sorts the leads.
   function uniqueStrings(values) {
@@ -258,7 +257,80 @@
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
   }
 
-  function buildJobCard(job, onApply) {
+  function isAfterApplyBy(value) {
+    if (!value) return false;
+    const deadline = new Date(`${value}T23:59:59`);
+    if (Number.isNaN(deadline.getTime())) return false;
+    return Date.now() > deadline.getTime();
+  }
+
+  function buildApplicationEmailHref(job) {
+    const applyEmail = safeText(job.applicationEmail || 'bmasrecruitment@gmail.com');
+    const title = safeText(job.title);
+    const body = [
+      `Position applied for: ${title}`,
+      '',
+      'Dear BMAS Recruitment Team,',
+      '',
+      'Please find attached my application documents for the above position.',
+      '',
+      'Checklist:',
+      '- Application letter',
+      '- Updated CV',
+      '- Copies of relevant qualifications',
+      '- NRC copy or valid identification',
+      '- At least two traceable referees',
+      '- Any relevant certificates, licences, or professional documents',
+      '',
+      'Kind regards,',
+    ].join('\n');
+
+    return `mailto:${applyEmail}?subject=${encodeURIComponent(`Application for ${title}`)}&body=${encodeURIComponent(body)}`;
+  }
+
+  function injectJobPostingSchema(jobs) {
+    if (!Array.isArray(jobs) || jobs.length === 0) return;
+
+    const existing = document.getElementById('jobsStructuredData');
+    if (existing) existing.remove();
+
+    const graph = jobs.map((job) => ({
+      '@type': 'JobPosting',
+      title: safeText(job.title),
+      description: [
+        safeText(job.jobPurpose || job.summary),
+        ...(Array.isArray(job.responsibilities) ? job.responsibilities : []),
+        ...(Array.isArray(job.requirements) ? job.requirements : []),
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      datePosted: safeText(job.postedAt),
+      validThrough: job.applyBy ? `${safeText(job.applyBy)}T23:59:59+02:00` : undefined,
+      employmentType: safeText(job.workType).toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+      hiringOrganization: {
+        '@type': 'Organization',
+        name: 'Business Momentum Advisory Services Limited',
+        sameAs: 'https://www.bmas.co.za/',
+      },
+      jobLocation: {
+        '@type': 'Place',
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: 'Lusaka',
+          addressCountry: 'ZM',
+        },
+      },
+      directApply: false,
+    }));
+
+    const script = document.createElement('script');
+    script.id = 'jobsStructuredData';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
+    document.head.appendChild(script);
+  }
+
+  function buildJobCard(job) {
     const card = document.createElement('article');
     card.className = 'border rounded-lg bg-white shadow-sm overflow-hidden';
 
@@ -332,10 +404,13 @@
     details.className = 'px-3 py-2 text-sm border rounded hover:bg-slate-50';
     details.textContent = 'Details';
 
-    const apply = document.createElement('button');
-    apply.type = 'button';
-    apply.className = 'px-3 py-2 text-sm bg-slate-900 text-white rounded';
-    apply.textContent = 'Apply';
+    const applyClosed = isAfterApplyBy(job.applyBy);
+    const apply = document.createElement(applyClosed ? 'span' : 'a');
+    apply.className = applyClosed
+      ? 'px-3 py-2 text-sm bg-slate-100 text-slate-500 rounded cursor-not-allowed'
+      : 'px-3 py-2 text-sm bg-slate-900 text-white rounded';
+    apply.textContent = applyClosed ? 'Applications closed' : 'Email to apply';
+    if (!applyClosed) apply.href = buildApplicationEmailHref(job);
 
     actions.appendChild(details);
     actions.appendChild(apply);
@@ -344,6 +419,20 @@
 
     const detailsPanel = document.createElement('div');
     detailsPanel.className = 'hidden border-t bg-slate-50 p-5 text-sm text-slate-700';
+
+    const addText = (heading, value) => {
+      const text = safeText(value);
+      if (!text) return;
+      const h = document.createElement('div');
+      h.className = 'font-semibold text-slate-900';
+      h.textContent = heading;
+      const p = document.createElement('p');
+      p.className = 'mt-2';
+      p.textContent = text;
+      detailsPanel.appendChild(h);
+      detailsPanel.appendChild(p);
+      detailsPanel.appendChild(document.createElement('div')).className = 'h-4';
+    };
 
     const addList = (heading, items) => {
       if (!Array.isArray(items) || items.length === 0) return;
@@ -362,15 +451,15 @@
       detailsPanel.appendChild(document.createElement('div')).className = 'h-4';
     };
 
-    addList('Responsibilities', job.responsibilities);
-    addList('Requirements', job.requirements);
+    addText('Job Purpose', job.jobPurpose);
+    addList('Key Responsibilities', job.responsibilities);
+    addList('Qualifications and Experience', job.requirements);
+    addList('Key Competencies', job.competencies);
 
     details.addEventListener('click', () => {
       const isHidden = detailsPanel.classList.toggle('hidden');
       details.textContent = isHidden ? 'Details' : 'Hide';
     });
-
-    apply.addEventListener('click', () => onApply(job));
 
     header.appendChild(logoWrap);
     header.appendChild(textWrap);
@@ -385,74 +474,6 @@
     return card;
   }
 
-  function wireJobApplyModal() {
-    if (!jobApplyModal) return null;
-
-    function openJobApply(job) {
-      // No multiverse crossover events inside the modal stack.
-      if (consultModal && consultModal.classList.contains('flex') && !consultModal.classList.contains('hidden')) return;
-      if (profileModal && profileModal.classList.contains('flex') && !profileModal.classList.contains('hidden')) return;
-
-      const roleEl = document.getElementById('jobApplyRole');
-      if (roleEl) roleEl.textContent = `${safeText(job.title)} — ${safeText(job.location || '')}`.trim();
-
-      const setValue = (id, value) => {
-        const el = document.getElementById(id);
-        if (el) el.value = safeText(value);
-      };
-
-      setValue('jobId', job.id);
-      setValue('jobTitle', job.title);
-      setValue('jobCompany', job.company);
-      setValue('jobLocation', job.location);
-
-      openModal(jobApplyModal, '#appName');
-    }
-
-    function closeJobApply() {
-      closeModal(jobApplyModal);
-    }
-
-    const closeBtn = document.getElementById('closeJobApply');
-    if (closeBtn) closeBtn.addEventListener('click', closeJobApply);
-
-    const backdrop = document.getElementById('jobApplyBackdrop');
-    if (backdrop) backdrop.addEventListener('click', closeJobApply);
-
-    const clearBtn = document.getElementById('clearJobApply');
-    if (clearBtn) clearBtn.addEventListener('click', () => document.getElementById('jobApplyForm')?.reset());
-
-    document.addEventListener('keydown', (e) => {
-      const isOpen = jobApplyModal.classList.contains('flex') && !jobApplyModal.classList.contains('hidden');
-      if (!isOpen) return;
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeJobApply();
-        return;
-      }
-
-      if (e.key === 'Tab') {
-        const focusable = Array.from(jobApplyModal.querySelectorAll(focusableSelector)).filter(
-          (el) => !el.hasAttribute('disabled') && el.getAttribute('tabindex') !== '-1',
-        );
-        if (focusable.length === 0) return;
-
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    });
-
-    return { open: openJobApply };
-  }
-
   async function initJobsBoard() {
     if (!jobsBoard) return;
 
@@ -464,7 +485,6 @@
 
     if (!statusEl || !listEl || !searchEl || !typeEl || !locationEl) return;
 
-    const modalApi = wireJobApplyModal();
     const src = jobsBoard.getAttribute('data-jobs-src') || 'assets/jobs.json';
 
     let payload;
@@ -482,6 +502,8 @@
       statusEl.textContent = 'No roles listed yet.';
       return;
     }
+
+    injectJobPostingSchema(jobs);
 
     const types = uniqueStrings(jobs.map((j) => j.workType));
     const locations = uniqueStrings(jobs.map((j) => j.location));
@@ -529,12 +551,7 @@
       statusEl.textContent = `${filtered.length} role${filtered.length === 1 ? '' : 's'} found.`;
 
       filtered.forEach((job) => {
-        listEl.appendChild(
-          buildJobCard(job, (j) => {
-            if (!modalApi) return;
-            modalApi.open(j);
-          }),
-        );
+        listEl.appendChild(buildJobCard(job));
       });
 
       if (filtered.length === 0) {

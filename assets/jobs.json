@@ -1,19 +1,372 @@
 {
-  "updatedAt": "2026-03-17",
-  "jobs": [],
+  "updatedAt": "2026-05-20",
+  "jobs": [
+    {
+      "id": "client-manager-2026-05",
+      "title": "Manager - 1 Position",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Manager will be responsible for overseeing the daily operations of the client establishment, ensuring efficient service delivery, proper staff supervision, customer satisfaction, compliance with company procedures, and achievement of operational standards. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "1 position",
+        "Client recruitment",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Oversee day-to-day operations and ensure all departments function effectively.",
+        "Supervise staff performance, attendance, discipline, grooming, and customer service standards.",
+        "Coordinate duty schedules, shift plans, and task allocation.",
+        "Ensure high standards of cleanliness, hospitality, food service, and guest or customer experience.",
+        "Monitor stock usage, operational costs, wastage, and resource control.",
+        "Handle customer complaints professionally and ensure timely resolution.",
+        "Prepare daily, weekly, or monthly operational reports as required.",
+        "Ensure compliance with workplace rules, health and safety standards, and company policies.",
+        "Support recruitment, onboarding, training, and performance management of staff.",
+        "Liaise with directors, owners, or senior management on operational needs and improvements."
+      ],
+      "requirements": [
+        "Diploma or better in Business Administration, Hospitality Management, Human Resource Management, or a related field.",
+        "Minimum of 3 years' experience in a supervisory or management role.",
+        "Experience in hospitality, lodge, hotel, restaurant, or service-based operations will be an added advantage.",
+        "Strong leadership, reporting, and problem-solving skills.",
+        "Ability to manage people, pressure, conflict, and customer expectations professionally."
+      ],
+      "jobPurpose": "The Manager will be responsible for overseeing the daily operations of the client establishment, ensuring efficient service delivery, proper staff supervision, customer satisfaction, compliance with company procedures, and achievement of operational standards.",
+      "competencies": [
+        "Leadership",
+        "Accountability",
+        "Communication",
+        "Planning",
+        "Customer service",
+        "Conflict resolution",
+        "Discipline management",
+        "Operational control"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    },
+    {
+      "id": "client-supervisors-2026-05",
+      "title": "Supervisors - 4 Positions",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Supervisors will provide frontline leadership by coordinating staff duties, monitoring service delivery, enforcing standards, and ensuring that daily operations are carried out efficiently and professionally. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "4 positions",
+        "Frontline leadership",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Supervise assigned teams and ensure duties are performed according to required standards.",
+        "Allocate daily tasks and monitor completion of work.",
+        "Ensure staff report on time, are properly dressed, and follow workplace procedures.",
+        "Monitor cleanliness, customer service, food service, and general operational standards.",
+        "Report misconduct, absenteeism, poor performance, or operational challenges to management.",
+        "Assist in training and guiding junior staff.",
+        "Handle minor customer concerns and escalate serious matters to the Manager.",
+        "Maintain discipline, teamwork, and productivity within assigned sections.",
+        "Prepare shift handover notes and report daily activities.",
+        "Ensure company property, equipment, and materials are used properly."
+      ],
+      "requirements": [
+        "Grade 12 certificate.",
+        "Certificate or diploma in Hospitality, Business Administration, Customer Service, or a related field will be an added advantage.",
+        "At least 2 years' experience in a supervisory or team leader role.",
+        "Experience in hospitality, housekeeping, food service, or general operations will be an advantage."
+      ],
+      "jobPurpose": "The Supervisors will provide frontline leadership by coordinating staff duties, monitoring service delivery, enforcing standards, and ensuring that daily operations are carried out efficiently and professionally.",
+      "competencies": [
+        "Supervision",
+        "Teamwork",
+        "Attention to detail",
+        "Communication",
+        "Reliability",
+        "Discipline",
+        "Problem-solving",
+        "Customer focus"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    },
+    {
+      "id": "client-head-chef-2026-05",
+      "title": "Head Chef - 1 Position",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Head Chef will be responsible for managing kitchen operations, preparing quality meals, supervising kitchen staff, maintaining hygiene standards, controlling food costs, and ensuring consistent food quality and presentation. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "1 position",
+        "Kitchen leadership",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Plan, prepare, and supervise meal preparation according to required standards.",
+        "Develop or assist in developing menus, meal plans, and food presentation standards.",
+        "Supervise kitchen staff and allocate kitchen duties.",
+        "Ensure high standards of hygiene, cleanliness, food safety, and sanitation.",
+        "Monitor food stock levels and support procurement planning.",
+        "Control food wastage and ensure proper storage of ingredients.",
+        "Ensure all meals are prepared on time and meet customer expectations.",
+        "Maintain kitchen equipment and report faults or maintenance needs.",
+        "Train junior kitchen staff on preparation, hygiene, and presentation standards.",
+        "Ensure compliance with health and safety requirements."
+      ],
+      "requirements": [
+        "Certificate or diploma in Food Production, Culinary Arts, Hospitality, or a related field.",
+        "Minimum of 3 years' experience as a Chef, with at least 1 year in a senior kitchen role.",
+        "Strong knowledge of food safety, hygiene, menu planning, and cost control.",
+        "Ability to prepare both local and international dishes will be an added advantage."
+      ],
+      "jobPurpose": "The Head Chef will be responsible for managing kitchen operations, preparing quality meals, supervising kitchen staff, maintaining hygiene standards, controlling food costs, and ensuring consistent food quality and presentation.",
+      "competencies": [
+        "Culinary skill",
+        "Hygiene consciousness",
+        "Leadership",
+        "Creativity",
+        "Time management",
+        "Cost control",
+        "Attention to detail",
+        "Teamwork"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    },
+    {
+      "id": "client-accountant-2026-05",
+      "title": "Accountant - 1 Position",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Accountant will be responsible for managing financial records, processing transactions, supporting payroll and statutory obligations, preparing reports, and ensuring proper financial controls. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "1 position",
+        "Finance and controls",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Maintain accurate financial records and supporting documents.",
+        "Prepare daily, weekly, and monthly financial reports.",
+        "Record income, expenses, purchases, payments, and petty cash transactions.",
+        "Reconcile cash, bank, supplier, and customer accounts.",
+        "Support payroll preparation and statutory compliance where required.",
+        "Prepare invoices, receipts, payment vouchers, and financial schedules.",
+        "Monitor budgets, expenses, and financial controls.",
+        "Support stock control, cost monitoring, and procurement documentation.",
+        "Ensure proper filing of accounting documents.",
+        "Advise management on financial irregularities, cost risks, or control weaknesses."
+      ],
+      "requirements": [
+        "Diploma or degree in Accounting, Finance, or a related field.",
+        "ZICA qualification or progression will be an added advantage.",
+        "Minimum of 2 years' relevant accounting experience.",
+        "Good knowledge of accounting systems, Excel, and financial reporting.",
+        "Understanding of statutory obligations such as PAYE, NAPSA, NHIMA, and other compliance requirements will be an added advantage."
+      ],
+      "jobPurpose": "The Accountant will be responsible for managing financial records, processing transactions, supporting payroll and statutory obligations, preparing reports, and ensuring proper financial controls.",
+      "competencies": [
+        "Accuracy",
+        "Integrity",
+        "Confidentiality",
+        "Analytical thinking",
+        "Reporting",
+        "Attention to detail",
+        "Financial control",
+        "Professionalism"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    },
+    {
+      "id": "client-receptionist-2026-05",
+      "title": "Receptionist - 1 Position",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Receptionist will serve as the first point of contact for guests, clients, and visitors, ensuring professional front-desk service, proper communication, booking coordination, and excellent customer experience. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "1 position",
+        "Front office",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Welcome guests, clients, and visitors in a polite and professional manner.",
+        "Answer phone calls, respond to inquiries, and direct communication appropriately.",
+        "Manage bookings, reservations, appointments, and guest records where applicable.",
+        "Maintain a clean, organised, and professional reception area.",
+        "Handle check-in and check-out processes if required.",
+        "Receive and record payments, receipts, or customer information where applicable.",
+        "Communicate guest needs to relevant departments.",
+        "Manage visitor registers and front office documentation.",
+        "Handle complaints professionally and escalate unresolved issues.",
+        "Support administrative duties assigned by management."
+      ],
+      "requirements": [
+        "Grade 12 certificate.",
+        "Certificate or diploma in Front Office Operations, Hospitality, Customer Service, Business Administration, or a related field will be an added advantage.",
+        "At least 1 year of experience in reception, customer service, front office, or administration.",
+        "Good computer literacy and communication skills."
+      ],
+      "jobPurpose": "The Receptionist will serve as the first point of contact for guests, clients, and visitors, ensuring professional front-desk service, proper communication, booking coordination, and excellent customer experience.",
+      "competencies": [
+        "Professional appearance",
+        "Communication",
+        "Customer care",
+        "Organisation",
+        "Patience",
+        "Confidentiality",
+        "Multitasking",
+        "Problem-solving"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    },
+    {
+      "id": "client-barman-2026-05",
+      "title": "Barman - 1 Position",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Barman will be responsible for preparing and serving beverages, maintaining bar cleanliness, controlling stock, supporting customer service, and ensuring responsible and professional bar operations. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "1 position",
+        "Food and beverage",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Prepare and serve alcoholic and non-alcoholic beverages according to standards.",
+        "Maintain cleanliness and orderliness of the bar area.",
+        "Ensure proper stock handling, storage, and accountability.",
+        "Monitor bar stock levels and report shortages.",
+        "Serve customers professionally and courteously.",
+        "Handle customer orders accurately and efficiently.",
+        "Follow responsible service practices and company rules.",
+        "Maintain bar equipment, glasses, and utensils in good condition.",
+        "Record sales, stock movement, or requisitions where required.",
+        "Report incidents, customer complaints, or stock discrepancies to the Supervisor or Manager."
+      ],
+      "requirements": [
+        "Grade 12 certificate.",
+        "Certificate in hospitality, food and beverage service, or bartending will be an added advantage.",
+        "At least 1 year of experience in bar service or food and beverage operations.",
+        "Knowledge of basic drink preparation, stock control, and customer service."
+      ],
+      "jobPurpose": "The Barman will be responsible for preparing and serving beverages, maintaining bar cleanliness, controlling stock, supporting customer service, and ensuring responsible and professional bar operations.",
+      "competencies": [
+        "Honesty",
+        "Customer service",
+        "Cleanliness",
+        "Attention to detail",
+        "Product knowledge",
+        "Accountability",
+        "Teamwork",
+        "Discipline"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    },
+    {
+      "id": "client-cleaners-2026-05",
+      "title": "Cleaners - 6 Positions",
+      "company": "Confidential (BMAS Client)",
+      "location": "Lusaka, Zambia",
+      "workType": "Full-time",
+      "workMode": "On-site",
+      "postedAt": "2026-05-20",
+      "applyBy": "2026-05-30",
+      "summary": "The Cleaners will be responsible for maintaining cleanliness, hygiene, and orderliness in assigned areas, ensuring that the client premises remain safe, presentable, and welcoming at all times. Applications must be emailed to bmasrecruitment@gmail.com.",
+      "highlights": [
+        "6 positions",
+        "Housekeeping and cleaning",
+        "Deadline: 30 May 2026",
+        "Apply by email only"
+      ],
+      "responsibilities": [
+        "Clean offices, rooms, restrooms, public areas, floors, windows, and assigned spaces.",
+        "Sweep, mop, dust, polish, and disinfect surfaces as required.",
+        "Empty bins and dispose of waste properly.",
+        "Replenish cleaning supplies and report shortages.",
+        "Maintain cleaning tools and equipment in good condition.",
+        "Follow hygiene, safety, and cleaning procedures.",
+        "Report damages, faults, lost items, or safety hazards to the Supervisor.",
+        "Support laundry, room preparation, or housekeeping duties where applicable.",
+        "Maintain confidentiality and professionalism when working around guests or staff.",
+        "Perform any other cleaning-related duties assigned by the Supervisor or Manager."
+      ],
+      "requirements": [
+        "Grade 12 certificate will be an added advantage.",
+        "Previous cleaning, housekeeping, or general work experience will be an advantage.",
+        "Ability to follow instructions and work with minimum supervision.",
+        "Must be physically fit, reliable, honest, and disciplined."
+      ],
+      "jobPurpose": "The Cleaners will be responsible for maintaining cleanliness, hygiene, and orderliness in assigned areas, ensuring that the client premises remain safe, presentable, and welcoming at all times.",
+      "competencies": [
+        "Cleanliness",
+        "Reliability",
+        "Attention to detail",
+        "Respect",
+        "Teamwork",
+        "Honesty",
+        "Time management",
+        "Willingness to learn"
+      ],
+      "applicationEmail": "bmasrecruitment@gmail.com"
+    }
+  ],
+  "applicationRequirements": [
+    "Application letter clearly stating the position applied for.",
+    "Updated CV.",
+    "Copies of relevant qualifications.",
+    "NRC copy or valid identification.",
+    "At least two traceable referees.",
+    "Any relevant certificates, licences, or professional documents."
+  ],
+  "applicationEmail": "bmasrecruitment@gmail.com",
   "jobTemplate": {
     "id": "unique-id",
     "title": "Role Title",
     "company": "Company name or 'Confidential (BMAS Client)'",
-    "logo": { "src": "assets/clients/client-01.png", "alt": "Company logo" },
+    "logo": {
+      "src": "assets/clients/client-01.png",
+      "alt": "Company logo"
+    },
     "location": "Lusaka, Zambia",
     "workType": "Full-time",
     "workMode": "On-site | Hybrid | Remote",
     "postedAt": "2026-03-17",
     "applyBy": "2026-04-15",
-    "summary": "1–2 sentence summary of the role.",
-    "highlights": ["Short highlight", "Another highlight"],
-    "responsibilities": ["Responsibility 1", "Responsibility 2"],
-    "requirements": ["Requirement 1", "Requirement 2"]
+    "summary": "1-2 sentence summary of the role.",
+    "highlights": [
+      "Short highlight",
+      "Another highlight"
+    ],
+    "responsibilities": [
+      "Responsibility 1",
+      "Responsibility 2"
+    ],
+    "requirements": [
+      "Requirement 1",
+      "Requirement 2"
+    ]
   }
 }
