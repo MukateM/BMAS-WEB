@@ -288,6 +288,23 @@
     return `mailto:${applyEmail}?subject=${encodeURIComponent(`Application for ${title}`)}&body=${encodeURIComponent(body)}`;
   }
 
+  function copyText(value) {
+    const text = safeText(value);
+    if (!text) return Promise.reject(new Error('Nothing to copy.'));
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+
+    const input = document.createElement('input');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'absolute';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.select();
+    const copied = document.execCommand('copy');
+    input.remove();
+    return copied ? Promise.resolve() : Promise.reject(new Error('Copy failed.'));
+  }
+
   function injectJobPostingSchema(jobs) {
     if (!Array.isArray(jobs) || jobs.length === 0) return;
 
@@ -414,6 +431,27 @@
 
     actions.appendChild(details);
     actions.appendChild(apply);
+
+    if (!applyClosed) {
+      const copyEmail = document.createElement('button');
+      copyEmail.type = 'button';
+      copyEmail.className = 'px-3 py-2 text-sm border rounded hover:bg-slate-50';
+      copyEmail.textContent = 'Copy email';
+      copyEmail.addEventListener('click', async () => {
+        const original = copyEmail.textContent;
+        try {
+          await copyText(safeText(job.applicationEmail || 'bmasrecruitment@gmail.com'));
+          copyEmail.textContent = 'Copied';
+        } catch (_err) {
+          copyEmail.textContent = 'Copy failed';
+        }
+        window.setTimeout(() => {
+          copyEmail.textContent = original;
+        }, 1800);
+      });
+      actions.appendChild(copyEmail);
+    }
+
     footer.appendChild(dates);
     footer.appendChild(actions);
 
