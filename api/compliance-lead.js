@@ -108,7 +108,7 @@ export default async function handler(req, res) {
   }
 
   const formBody = new URLSearchParams({
-    'Assessment Type': 'BMAS Employer Compliance Check',
+    'Assessment Type': 'BMAS Employers Self Compliance Assessment',
     'Full Name': fullName,
     Email: email,
     'Phone Number': phone,

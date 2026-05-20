@@ -498,7 +498,7 @@ function buildReportHtml(result, watermarkSrc) {
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>BMAS Compliance Check Report</title>
+        <title>BMAS Employers Self Compliance Assessment Report</title>
         <style>
           @page { margin: 18mm; }
           body { color: #0f172a; font-family: Arial, sans-serif; line-height: 1.45; }
@@ -540,7 +540,7 @@ function buildReportHtml(result, watermarkSrc) {
         <div class="report-content">
           <header>
             <div class="label">Business Momentum Advisory Services</div>
-            <h1>Employer Compliance Check Report</h1>
+            <h1>Employers Self Compliance Assessment Report</h1>
             <p>Generated ${escapeHtml(new Date().toLocaleString())}</p>
           </header>
           <section class="summary">
