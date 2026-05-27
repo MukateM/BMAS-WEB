@@ -79,15 +79,15 @@
   function setMessage(message, tone) {
     if (!messageEl) return;
     messageEl.textContent = message;
-    messageEl.className = `mt-4 text-sm text-center ${
-      tone === 'success' ? 'text-green-600' : tone === 'info' ? 'text-blue-600' : 'text-red-600'
-    }`;
+    messageEl.className = `mt-4 text-sm text-center ${tone === 'success' ? 'text-green-600' : tone === 'error' ? 'text-red-600' : ''}`;
+    messageEl.style.color = tone === 'info' ? '#12727c' : '';
     messageEl.classList.remove('hidden');
   }
 
   function clearMessage() {
     if (!messageEl) return;
     messageEl.textContent = '';
+    messageEl.style.color = '';
     messageEl.className = 'mt-4 text-sm text-center hidden';
   }
 

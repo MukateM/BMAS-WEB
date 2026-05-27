@@ -1185,8 +1185,8 @@ function downloadLeaderboardFlyer() {
   const ctx = canvas.getContext('2d');
 
   const colors = {
-    navy: '#061530',
-    teal: '#0b3f5d',
+    navy: '#0a3f46',
+    teal: '#12727c',
     amber: '#f59e0b',
     sand: '#fff7e8',
     mist: '#eef6fb',

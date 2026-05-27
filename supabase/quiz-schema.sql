@@ -1,7 +1,7 @@
 create extension if not exists pgcrypto;
 
 create table if not exists public.quiz_questions (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   level smallint not null check (level between 1 and 20),
   scenario text not null,
   question text not null,
@@ -17,6 +17,9 @@ create table if not exists public.quiz_questions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.quiz_questions
+  add column if not exists updated_at timestamptz not null default now();
 
 create index if not exists quiz_questions_level_active_idx on public.quiz_questions(level, active);
 
@@ -52,7 +55,7 @@ create table if not exists public.quiz_attempt_sessions (
   user_id uuid not null references public.quiz_profiles(user_id) on delete cascade,
   level smallint not null check (level between 1 and 20),
   month_key date not null,
-  question_ids uuid[] not null,
+  question_ids text[] not null,
   issued_at timestamptz not null default now(),
   submitted_at timestamptz,
   expires_at timestamptz
@@ -124,6 +127,7 @@ alter table public.quiz_questions enable row level security;
 alter table public.quiz_profiles enable row level security;
 alter table public.quiz_attempt_sessions enable row level security;
 alter table public.quiz_attempts enable row level security;
+alter table public.quiz_manual_users enable row level security;
 alter table public.leaderboard_monthly_snapshot enable row level security;
 
 drop policy if exists "profiles_select_own" on public.quiz_profiles;
@@ -183,6 +187,14 @@ for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+drop policy if exists "Service role can manage manual quiz users" on public.quiz_manual_users;
+create policy "Service role can manage manual quiz users"
+on public.quiz_manual_users
+for all
+to service_role
+using (true)
+with check (true);
 
 drop policy if exists "snapshots_public_read" on public.leaderboard_monthly_snapshot;
 create policy "snapshots_public_read"

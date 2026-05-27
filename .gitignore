@@ -9,3 +9,13 @@ node_modules/
 *.log
 dist/
 build/
+.chrome-mobile-audit
+.chrome-mobile-audit-2
+.chrome-mobile-home
+.chrome-mobile-*
+.mobile-*
+.chrome-mobile-*
+mobile-audit*
+mobile-compliance.png
+mobile-home*.png
+mobile-quiz.png

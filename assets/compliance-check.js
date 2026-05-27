@@ -64,61 +64,6 @@ const groups = [
     ],
   },
   {
-    title: 'Minimum Wage and Job Categories',
-    helper: 'Use not applicable if you do not employ that category. Confirm final rates against the current wage order before making payroll decisions.',
-    allowNa: true,
-    questions: [
-      {
-        id: 'domestic-worker-wage',
-        text: 'Domestic worker pay checked against the current minimum wage order, including transport where applicable?',
-        issue: 'Domestic worker pay may not have been checked against the current minimum wage order.',
-        action: 'Review domestic worker pay and allowances against the applicable wage order.',
-      },
-      {
-        id: 'domestic-worker-attested',
-        text: 'Domestic worker contract attested?',
-        issue: 'Domestic worker contract attestation may be missing.',
-        action: 'Prepare the contract for attestation if the category applies.',
-      },
-      {
-        id: 'general-worker-wage',
-        text: 'General worker pay checked against the current basic pay and allowance requirements?',
-        issue: 'General worker pay may not have been checked against current basic pay and allowance requirements.',
-        action: 'Review basic pay and allowances against the applicable wage order.',
-      },
-      {
-        id: 'general-worker-attested',
-        text: 'General worker contract attested?',
-        issue: 'General worker contract attestation may be missing.',
-        action: 'Prepare the contract for attestation if the category applies.',
-      },
-      {
-        id: 'bus-driver-wage',
-        text: 'Bus driver pay checked against the current minimum wage order?',
-        issue: 'Bus driver pay may not have been checked against the current minimum wage order.',
-        action: 'Review driver pay against the applicable wage order.',
-      },
-      {
-        id: 'bus-driver-attested',
-        text: 'Bus driver contract attested?',
-        issue: 'Bus driver contract attestation may be missing.',
-        action: 'Prepare the contract for attestation if the category applies.',
-      },
-      {
-        id: 'truck-driver-wage',
-        text: 'Truck driver pay checked against the current minimum wage order?',
-        issue: 'Truck driver pay may not have been checked against the current minimum wage order.',
-        action: 'Review driver pay against the applicable wage order.',
-      },
-      {
-        id: 'truck-driver-attested',
-        text: 'Truck driver contract attested?',
-        issue: 'Truck driver contract attestation may be missing.',
-        action: 'Prepare the contract for attestation if the category applies.',
-      },
-    ],
-  },
-  {
     title: 'Payroll Remittances',
     questions: [
       {
@@ -210,8 +155,8 @@ const bandContent = {
   },
   blue: {
     label: 'Moderate Risk',
-    color: '#0284c7',
-    badgeClass: 'bg-sky-100 text-sky-800',
+    color: '#12727c',
+    badgeClass: 'bmas-teal-badge',
     summary: 'You are moving in the right direction. Close the remaining gaps before they become costly.',
   },
   green: {
@@ -263,21 +208,12 @@ const importantQuestions = new Set([
   'attested-contracts',
   'itemised-payslips',
   'employee-records',
-  'domestic-worker-wage',
-  'domestic-worker-attested',
-  'general-worker-wage',
-  'general-worker-attested',
-  'bus-driver-wage',
-  'bus-driver-attested',
-  'truck-driver-wage',
-  'truck-driver-attested',
   'statutory-leave',
 ]);
 
 const exposureByGroup = {
   Registration: 'Inspection teams may require registration proof and current statutory records.',
   'Contracts and Employment Records': 'Missing records can weaken audit readiness and employment dispute defence.',
-  'Minimum Wage and Job Categories': 'Wage gaps can trigger arrears, corrective orders, or worker claims after review.',
   'Payroll Remittances': 'Late or missing remittances can attract statutory penalties, interest, arrears, and enforcement action.',
   'HR Policies and Practitioner Support': 'Informal HR handling can increase disciplinary, leave, and grievance risk.',
   'Staff Welfare and Fair Process': 'Safety, leave, union, and termination gaps can create high dispute and enforcement exposure.',
@@ -501,7 +437,7 @@ function buildReportHtml(result, watermarkSrc) {
         <title>BMAS Employers Self Compliance Assessment Report</title>
         <style>
           @page { margin: 18mm; }
-          body { color: #0f172a; font-family: Arial, sans-serif; line-height: 1.45; }
+          body { color: #0a3f46; font-family: Arial, sans-serif; line-height: 1.45; }
           .watermark {
             height: 430px;
             left: 50%;

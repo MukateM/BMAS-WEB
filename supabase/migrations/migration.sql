@@ -26,6 +26,7 @@ create table if not exists public.quiz_questions (
 alter table public.quiz_questions enable row level security;
 
 -- Service role needs explicit permission to read questions for the API
+drop policy if exists "Service role can read all questions" on public.quiz_questions;
 create policy "Service role can read all questions"
   on public.quiz_questions
   for select
@@ -33,13 +34,15 @@ create policy "Service role can read all questions"
 
 -- No direct select allowed on the table for anon/authenticated —
 -- they go through the secure view or the API function instead.
+drop policy if exists "No direct browser access to questions table" on public.quiz_questions;
 create policy "No direct browser access to questions table"
   on public.quiz_questions
   for select
   using (false);
 
 -- ── 2. Safe view — options only, no correct_index ─────────────
-create or replace view public.quiz_questions_safe as
+create or replace view public.quiz_questions_safe
+with (security_invoker = true) as
   select
     id,
     level,
@@ -134,6 +137,7 @@ create table if not exists public.quiz_profiles (
 
 alter table public.quiz_profiles enable row level security;
 
+drop policy if exists "Users can read and write their own profile" on public.quiz_profiles;
 create policy "Users can read and write their own profile"
   on public.quiz_profiles
   for all
@@ -157,22 +161,26 @@ create table if not exists public.quiz_attempts (
 
 alter table public.quiz_attempts enable row level security;
 
+drop policy if exists "Service role can read and write attempts" on public.quiz_attempts;
 create policy "Service role can read and write attempts"
   on public.quiz_attempts
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
 
+drop policy if exists "Users can insert their own attempts" on public.quiz_attempts;
 create policy "Users can insert their own attempts"
   on public.quiz_attempts
   for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can read their own attempts" on public.quiz_attempts;
 create policy "Users can read their own attempts"
   on public.quiz_attempts
   for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Anyone can read leaderboard data" on public.quiz_attempts;
 create policy "Anyone can read leaderboard data"
   on public.quiz_attempts
   for select
@@ -191,6 +199,7 @@ create table if not exists public.leaderboard_monthly_snapshot (
 
 alter table public.leaderboard_monthly_snapshot enable row level security;
 
+drop policy if exists "Anyone can read hall of fame" on public.leaderboard_monthly_snapshot;
 create policy "Anyone can read hall of fame"
   on public.leaderboard_monthly_snapshot
   for select
@@ -206,11 +215,11 @@ insert into public.quiz_questions (id, level, scenario, question, option_a, opti
 ('l1-q2',1,'A company pays one woman less than a man doing work of equal value even though they perform the same duties at the same level.','Which section is most directly engaged by this scenario?','Section 5 on non-discrimination and equal wages for work of equal value','Section 27 on probation','Section 55 on redundancy','Section 73 on gratuity',0,'Section 5 prohibits discrimination and specifically requires equal wages for work of equal value.','Employment Code Act, 2019, s.5(1)–(4)',''),
 ('l1-q3',1,'An employer keeps re-engaging the same worker on temporary terms for eight months to do a core, regular job with fixed weekly hours and no valid temporary reason.','What is the strongest legal concern?','The worker automatically becomes a director of the company','The arrangement may amount to prohibited casualisation','The employer has created a lawful apprenticeship','The worker loses all rights because the contract was temporary',1,'Using temporary or fixed arrangements without a permissible reason for work that is permanent in nature may amount to prohibited casualisation.','Employment Code Act, 2019, s.7',''),
 ('l1-q4',1,'A person is compelled to work under threats and cannot freely leave the arrangement.','Which core statutory prohibition is most directly raised?','Only a wage record breach','A prohibition against forced labour','Only a minor overtime issue','A probation extension issue',1,'The Act prohibits forced labour and makes contravention an offence.','Employment Code Act, 2019, s.8',''),
-('l1-q5',1,'An employer issues a contract lasting for two years with a fixed end date agreed by both parties.','How does the Act most accurately classify that contract?','A permanent contract only','A long-term contract','A casual engagement','A public holiday arrangement',1,'A contract with a fixed end date of more than one year is a long-term contract under the Act.','Employment Code Act, 2019, s.21',''),
-('l1-q6',1,'An employer engages a worker for a specific task expected to last three weeks.','What type of contract is this under the Act?','A permanent contract','A short-term contract','A long-term contract','A casual contract only',1,'A contract for a specific task or period not exceeding one year is a short-term contract.','Employment Code Act, 2019, s.20',''),
+('l1-q5',1,'An employer issues a contract lasting for two years with a fixed end date agreed by both parties.','How does the Act most accurately classify that contract?','A permanent contract only','A long-term contract','A casual engagement','A public holiday arrangement',1,'A contract for a period exceeding twelve months whose termination is fixed in advance is a long-term contract under the Act.','Employment Code Act, 2019, s.3',''),
+('l1-q6',1,'An employer engages a worker for a specific task expected to last three weeks.','What type of contract is this under the Act?','A permanent contract','A short-term contract','A long-term contract','A casual contract only',1,'A contract for a specific task or period not exceeding twelve months is a short-term contract.','Employment Code Act, 2019, s.3',''),
 ('l1-q7',1,'An employer says it can dictate any working terms because Zambia has no minimum employment standards.','Which statement best corrects that view?','The employer is correct — working terms are purely private','The Employment Code Act sets minimum standards that apply regardless of contract','Only the Constitution governs employment terms','Minimum standards apply only in the mining sector',1,'The Employment Code Act sets statutory minimums that override contrary contractual terms.','Employment Code Act, 2019, s.3',''),
-('l1-q8',1,'An employer wants to engage someone for agricultural harvesting work that occurs only during a specific season each year.','Which contract type best fits that arrangement under the Act?','A permanent contract','A seasonal employment contract','A long-term contract','A casual contract',1,'Work that recurs in a particular season of the year qualifies as seasonal employment under the Act.','Employment Code Act, 2019, s.22',''),
-('l1-q9',1,'A worker with no fixed end date and no specific task limitation has worked for three years under the same employer.','What employment type does the Act recognise here?','Short-term employment','Permanent employment','Seasonal employment','Apprenticeship only',1,'Employment with no fixed term or specific task limitation is permanent employment.','Employment Code Act, 2019, s.23',''),
+('l1-q8',1,'An employer wants to engage someone for agricultural harvesting work that occurs only during a specific season each year.','Which contract type best fits that arrangement under the Act?','A permanent contract','A seasonal employment contract','A long-term contract','A casual contract',1,'Work that recurs in a particular season of the year qualifies as seasonal employment under the Act.','Employment Code Act, 2019, s.3',''),
+('l1-q9',1,'A worker with no fixed end date and no specific task limitation has worked for three years under the same employer.','What employment type does the Act recognise here?','Short-term employment','Permanent employment','Seasonal employment','Apprenticeship only',1,'Employment with no fixed term or specific task limitation is permanent employment.','Employment Code Act, 2019, s.3',''),
 
 -- LEVEL 2
 ('l2-q1',2,'An employer dismisses a worker verbally and without any hearing or investigation, claiming the dismissal is lawful because the worker was rude to a client once.','What is the strongest legal problem with this dismissal?','Verbal dismissal is always valid','The employer failed to follow fair dismissal procedure including hearing','Rudeness is never a disciplinary matter','The employer needed only a letter of apology',1,'The Act requires a fair hearing and proper disciplinary procedure before dismissal. In Redrilza v Nkazi, the Supreme Court found the dismissal wrongful and ordered compensation, holding that dismissal and termination must not be conflated and that procedural fairness cannot be bypassed.','Employment Code Act, 2019, s.52(3)','Redrilza v Nkazi [2011] ZMSC 7'),
@@ -293,9 +302,9 @@ insert into public.quiz_questions (id, level, scenario, question, option_a, opti
 ('l11-q5',11,'An employer dismisses an employee after the employee discloses their HIV-positive status.','How does the Employment Code Act treat this dismissal?','It may be lawful if the role requires physical fitness','It is prohibited — dismissal on the grounds of HIV status is unlawful discrimination','Only the Workers'' Compensation Act governs this','The employer must prove the dismissal was for a different reason, which courts always accept',1,'HIV status is a protected ground; dismissing an employee on account of HIV status is unlawful discrimination.','Employment Code Act, 2019, s.5 and s.95',''),
 
 -- LEVEL 12
-('l12-q1',12,'An employer wants to employ a child aged thirteen in a light, non-hazardous task during school holidays with parental consent.','What is the minimum age for employment under the Employment Code Act?','Twelve years','Fifteen years','Eighteen years','Sixteen years',1,'The Act sets fifteen as the minimum employment age for light, non-hazardous work.','Employment Code Act, 2019, s.106',''),
-('l12-q2',12,'An employer wants to have a seventeen-year-old work in a mine handling explosives.','Is this permissible under Zambian law?','Yes, if the minor is supervised','No — hazardous work is prohibited for persons under eighteen','Yes, if parental consent is given','Yes, for mining specifically',1,'Hazardous work is prohibited for persons under the age of eighteen.','Employment Code Act, 2019, s.106; Labour Law in Zambia, Ch.7',''),
-('l12-q3',12,'An employer requires a sixteen-year-old employee to work night shifts starting at 10 pm.','What does the law say about night work for persons under eighteen?','Night work is freely permitted for all employees','Night work is prohibited for persons under eighteen except in specified circumstances','Only persons under fifteen may not work nights','Night work restrictions apply only to females under eighteen',1,'Night work for persons under eighteen is prohibited except in specific legally permitted circumstances.','Employment Code Act, 2019, s.104; Labour Law in Zambia, Ch.7',''),
+('l12-q1',12,'An employer wants to employ a child aged thirteen in a light, non-hazardous task during school holidays with parental consent.','What is the general minimum contractual age under the Employment Code Act?','Twelve years','Fifteen years','Eighteen years','Sixteen years',1,'The Act generally sets fifteen as the minimum contractual age, while Part V contains specific child and young-person restrictions.','Employment Code Act, 2019, s.16',''),
+('l12-q2',12,'An employer wants to have a seventeen-year-old work in a mine handling explosives.','Is this permissible under Zambian law?','Yes, if the minor is supervised','No — hazardous work and the worst forms of labour are prohibited for children and young persons','Yes, if parental consent is given','Yes, for mining specifically',1,'Mines are industrial undertakings and hazardous work or worst forms of labour are prohibited for children and young persons.','Employment Code Act, 2019, ss.80 and 83; Labour Law in Zambia, Ch.7',''),
+('l12-q3',12,'An employer requires a sixteen-year-old employee to work night shifts starting at 10 pm.','What does the law say about night work for young persons?','Night work is freely permitted for all employees','Night work is prohibited for young persons in industrial undertakings except in specified circumstances','Only persons under fifteen may not work nights','Night work restrictions apply only to females under eighteen',1,'Night work for young persons in industrial undertakings is prohibited except in specific legally permitted circumstances.','Employment Code Act, 2019, s.86; Labour Law in Zambia, Ch.7',''),
 ('l12-q4',12,'An apprentice asks whether the Employment Code Act governs their training arrangement.','Which statute primarily governs apprenticeships in Zambia?','The Employment Code Act, 2019 alone','The Apprenticeship Act, Chapter 275 of the Laws of Zambia','The Skills Development Levy Act','The Workers'' Compensation Act',1,'Apprenticeships are primarily governed by the Apprenticeship Act, Chapter 275, which sets out the formal training framework.','Apprenticeship Act, Cap 275; Labour Law in Zambia, Ch.7',''),
 
 -- LEVEL 13

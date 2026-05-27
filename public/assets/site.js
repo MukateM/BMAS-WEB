@@ -97,27 +97,34 @@
     });
   }
 
-  if (consultModal) {
-    // Commissioner Gordon opens the hotline when the signal goes up.
-    function openConsultModal() {
+  // Commissioner Gordon opens the hotline when the signal goes up.
+  function openConsultModal(event) {
+    if (event) event.preventDefault();
+    if (consultModal) {
       openModal(consultModal, '#c_name');
+      return;
     }
 
+    window.location.href = '/contact';
+  }
+
+  [
+    'openConsultBtn',
+    'openConsultBtnMobile',
+    'openConsultBtnAside',
+    'openConsultBtnContact',
+    'openConsultBtnHero',
+    'openConsultBtnCta',
+    'openConsultBtnServices',
+  ].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', openConsultModal);
+  });
+
+  if (consultModal) {
     function closeConsultModal() {
       closeModal(consultModal);
     }
-
-    [
-      'openConsultBtn',
-      'openConsultBtnMobile',
-      'openConsultBtnAside',
-      'openConsultBtnContact',
-      'openConsultBtnHero',
-      'openConsultBtnCta',
-    ].forEach((id) => {
-      const btn = document.getElementById(id);
-      if (btn) btn.addEventListener('click', openConsultModal);
-    });
 
     const closeBtn = document.getElementById('closeConsult');
     if (closeBtn) closeBtn.addEventListener('click', closeConsultModal);
@@ -184,6 +191,8 @@
     }
 
     function shouldShowProfilePrompt() {
+      if (window.matchMedia?.('(max-width: 640px)').matches) return false;
+
       try {
         const raw = localStorage.getItem('bmas_profile_prompt_seen');
         if (!raw) return true;
