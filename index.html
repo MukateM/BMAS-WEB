@@ -47,29 +47,6 @@
       <p class="hero-typed-message mt-4 text-lg max-w-2xl" aria-label="SME and high-growth business support across Zambia and beyond - Business setup, HR Outsourcing, Compliance, Strategic Advisory, and integrated Payroll and HRIS.">
         <span class="hero-typed-message-text" data-typed-text="SME and high-growth business support across Zambia and beyond&mdash;Business setup, HR Outsourcing, Compliance, Strategic Advisory, and integrated Payroll & HRIS."></span>
       </p>
-      <script>
-        (() => {
-          const typedHero = document.querySelector('[data-typed-text]');
-          if (!typedHero || typedHero.dataset.typedStarted === 'true') return;
-          typedHero.dataset.typedStarted = 'true';
-
-          const text = typedHero.dataset.typedText || '';
-          const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-          if (reduceMotion) {
-            typedHero.textContent = text;
-            return;
-          }
-
-          typedHero.textContent = '';
-          let index = 0;
-          const typeNext = () => {
-            typedHero.textContent = text.slice(0, index);
-            index += 1;
-            if (index <= text.length) window.setTimeout(typeNext, 24);
-          };
-          window.setTimeout(typeNext, 2150);
-        })();
-      </script>
       <div class="mt-6 flex flex-wrap gap-3">
         <a href="/services" class="px-5 py-3 bg-amber-400 text-slate-900 rounded font-medium shadow">
           Explore Services
