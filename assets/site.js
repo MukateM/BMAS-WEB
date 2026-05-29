@@ -3,6 +3,26 @@
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
+  const typedHero = document.querySelector('[data-typed-text]');
+  if (typedHero && typedHero.dataset.typedStarted !== 'true') {
+    typedHero.dataset.typedStarted = 'true';
+    const text = typedHero.dataset.typedText || '';
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduceMotion) {
+      typedHero.textContent = text;
+    } else {
+      typedHero.textContent = '';
+      let index = 0;
+      const typeNext = () => {
+        typedHero.textContent = text.slice(0, index);
+        index += 1;
+        if (index <= text.length) window.setTimeout(typeNext, 24);
+      };
+      window.setTimeout(typeNext, 2150);
+    }
+  }
+
   const mobileBtn = document.getElementById('mobileBtn');
   const mobileNav = document.getElementById('mobileNav');
   if (mobileBtn && mobileNav) {
