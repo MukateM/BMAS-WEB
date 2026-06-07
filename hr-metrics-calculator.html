@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HR Metrics Calculator &ndash;Business Momentum Advisory Services (BMAS)</title>
+  <meta name="description" content="Calculate key HR metrics including turnover, retention, absenteeism, engagement, training effectiveness, time to fill, cost per hire, and more." />
+  <link rel="canonical" href="https://www.bmas.co.za/hr-metrics-calculator">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="theme-color" content="#12727C" />
+
+  <meta property="og:title" content="HR Metrics Calculator &ndash;BMAS">
+  <meta property="og:description" content="Calculate the top HR metrics used for workforce, recruitment, performance, engagement, attendance, and productivity reporting.">
+  <meta property="og:site_name" content="Business Momentum Advisory Services (BMAS)">
+  <meta property="og:image" content="https://www.bmas.co.za/bmas.png">
+  <meta property="og:image:alt" content="BMAS HR metrics calculator">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bmas.co.za/hr-metrics-calculator">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HR Metrics Calculator - BMAS">
+  <meta name="twitter:description" content="Calculate core HR metrics for management reporting and workforce planning.">
+  <meta name="twitter:image" content="https://www.bmas.co.za/bmas.png">
+  <meta name="twitter:image:alt" content="BMAS HR metrics calculator">
+
+  <link rel="icon" type="image/png" href="bmas.png" />
+  <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+
+<body class="antialiased text-gray-800 bg-gray-50 inner-brand-bg" data-page="hr-metrics">
+<!-- bmas:header -->
+
+<main id="main" class="max-w-6xl mx-auto px-6 pt-28 pb-16 space-y-8">
+  <section class="bg-white p-6 md:p-8 rounded-lg shadow">
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-600">BMAS HR Metrics</p>
+      <h1 class="mt-3 text-3xl font-extrabold text-slate-900">HR Metrics Calculator</h1>
+      <p class="mt-3 text-slate-600">
+        Calculate practical HR indicators for management reports, workforce reviews, and people analytics dashboards.
+      </p>
+    </div>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+      <form id="hrMetricsForm" class="rounded-lg border bg-slate-50 p-5">
+        <label for="metricSelect" class="block text-sm font-semibold text-slate-800">Metric</label>
+        <select id="metricSelect" class="mt-2 w-full rounded border px-3 py-2"></select>
+
+        <div id="metricContext" class="mt-4 rounded border bg-white p-4 text-sm text-slate-600"></div>
+        <div id="metricInputs" class="mt-4 grid gap-4 sm:grid-cols-2"></div>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+          <button type="submit" class="rounded bg-slate-900 px-4 py-2 font-semibold text-white">Calculate</button>
+          <button id="clearHrMetrics" type="button" class="rounded border px-4 py-2 font-semibold">Clear</button>
+        </div>
+      </form>
+
+      <section id="metricResult" class="rounded-lg border bg-white p-5">
+        <div class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Result</div>
+        <div id="metricResultValue" class="mt-4 text-4xl font-extrabold text-slate-950">--</div>
+        <div id="metricResultLabel" class="mt-2 text-lg font-bold text-slate-900">Select a metric and enter values.</div>
+        <p id="metricResultMeaning" class="mt-3 text-sm leading-6 text-slate-600"></p>
+        <div class="mt-5 rounded bg-amber-50 p-4 text-sm text-amber-900">
+          <div class="font-semibold">Formula</div>
+          <div id="metricResultFormula" class="mt-1"></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="bg-white p-6 md:p-8 rounded-lg shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900">Top 20 HR Metrics</h2>
+      </div>
+      <input id="metricSearch" type="search" class="rounded border px-3 py-2 text-sm" placeholder="Search metrics" />
+    </div>
+    <div id="metricLibrary" class="mt-5 grid gap-4 md:grid-cols-2"></div>
+  </section>
+</main>
+
+<!-- bmas:footer -->
+<!-- bmas:consult-modal -->
+
+<script type="module" src="assets/site.js"></script>
+<script type="module" src="assets/hr-metrics-calculator.js"></script>
+</body>
+</html>

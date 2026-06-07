@@ -74,6 +74,148 @@ body.inner-brand-bg > header {
   z-index: 30;
 }
 
+body[data-page="service-cafeteria"]::before,
+body[data-page="service-cafeteria"]::after {
+  content: none !important;
+  display: none !important;
+  background-image: none !important;
+}
+
+body[data-page="service-cafeteria"] {
+  background-image: none !important;
+}
+
+.cafeteria-shell {
+  min-height: 100vh;
+  background: #eef6f4;
+  color: #1e293b;
+}
+
+.cafeteria-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(120deg, rgba(8, 63, 70, 1), rgba(18, 114, 124, 0.94), rgba(15, 23, 42, 0.98));
+  color: #fff;
+}
+
+.cafeteria-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.16));
+  pointer-events: none;
+}
+
+.cafeteria-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.cafeteria-hero-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .cafeteria-hero-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.72fr);
+    align-items: center;
+  }
+}
+
+.cafeteria-hero-copy {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.cafeteria-metric-panel {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(5, 47, 53, 0.86);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.cafeteria-surface {
+  border-color: rgba(153, 220, 210, 0.55);
+  background: #f8fbfa;
+}
+
+.cafeteria-filter-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .cafeteria-filter-grid {
+    grid-template-columns: minmax(0, 1fr) 14rem;
+  }
+}
+
+.cafeteria-builder-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .cafeteria-builder-grid {
+    grid-template-columns: minmax(0, 1fr) 25rem;
+  }
+}
+
+.cafeteria-service-card {
+  min-height: 15rem;
+}
+
+.cafeteria-category-tile {
+  min-height: 5.5rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.cafeteria-category-tile:hover,
+.cafeteria-category-tile:focus-visible {
+  border-color: rgba(18, 114, 124, 0.55);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+.cafeteria-category-badge {
+  background: #ccfbf1;
+  color: #134e4a;
+}
+
+.cafeteria-note {
+  background: #ecfdf5;
+  color: #134e4a;
+}
+
+.cafeteria-accent {
+  color: #12727c;
+}
+
+.cafeteria-primary {
+  background: #12727c;
+  color: #fff;
+}
+
+.cafeteria-whatsapp-btn {
+  border: 1px solid #15803d;
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.22);
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.cafeteria-whatsapp-btn:hover,
+.cafeteria-whatsapp-btn:focus-visible {
+  background: #15803d;
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.28);
+  transform: translateY(-1px);
+}
+
+.cafeteria-whatsapp-btn:disabled {
+  cursor: not-allowed;
+  background: #86efac;
+  border-color: #86efac;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.86);
+}
+
 @media (min-width: 768px) and (max-width: 1180px) {
   header nav[aria-label="Primary"] {
     gap: 0.85rem;

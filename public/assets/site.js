@@ -108,9 +108,20 @@
     window.location.href = '/contact';
   }
 
+  function routeLegacyNavConsultButton(id) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.textContent = 'HR Cafeteria';
+    btn.setAttribute('aria-label', 'Open HR Cafeteria');
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      window.location.href = '/service-cafeteria';
+    });
+  }
+
+  ['openConsultBtn', 'openConsultBtnMobile'].forEach(routeLegacyNavConsultButton);
+
   [
-    'openConsultBtn',
-    'openConsultBtnMobile',
     'openConsultBtnAside',
     'openConsultBtnContact',
     'openConsultBtnHero',
