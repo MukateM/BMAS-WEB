@@ -99,9 +99,11 @@ const pageByFile = {
   'compliance-check.html': 'compliance',
   'contact.html': 'contact',
   'employment-law-quiz.html': 'quiz',
+  'hr-metrics-calculator.html': 'hr-metrics',
   'index.html': 'home',
   'market.html': 'market',
   'payroll-calculator.html': 'payroll',
+  'service-cafeteria.html': 'service-cafeteria',
   'services.html': 'services',
   'why-us.html': 'why-us',
 };
@@ -124,7 +126,7 @@ function renderHeader(filename) {
   const inactiveTool = 'rounded px-3 py-2 hover:bg-slate-50';
   const activeMobileTool = 'block py-2 pl-3 font-medium text-slate-900';
   const inactiveMobileTool = 'block py-2 pl-3';
-  const isToolPage = ['compliance', 'payroll', 'quiz'].includes(activePage);
+  const isToolPage = ['compliance', 'payroll', 'quiz', 'service-cafeteria', 'hr-metrics'].includes(activePage);
 
   return renderTemplate(partials.header, {
     headerClass:
@@ -140,8 +142,10 @@ function renderHeader(filename) {
     navCareersClass: classFor(activePage, 'careers', activeNav, inactiveNav),
     navContactClass: classFor(activePage, 'contact', activeNav, inactiveNav),
     navPayrollMenuClass: classFor(activePage, 'payroll', activeTool, inactiveTool),
+    navHrMetricsMenuClass: classFor(activePage, 'hr-metrics', activeTool, inactiveTool),
     navComplianceMenuClass: classFor(activePage, 'compliance', activeTool, inactiveTool),
     navQuizMenuClass: classFor(activePage, 'quiz', activeTool, inactiveTool),
+    navCafeteriaMenuClass: classFor(activePage, 'service-cafeteria', activeTool, inactiveTool),
     mobileAboutClass: classFor(activePage, 'about', activeMobile, inactiveMobile),
     mobileServicesClass: classFor(activePage, 'services', activeMobile, inactiveMobile),
     mobileMarketClass: classFor(activePage, 'market', activeMobile, inactiveMobile),
@@ -150,8 +154,10 @@ function renderHeader(filename) {
     mobileCareersClass: classFor(activePage, 'careers', activeMobile, inactiveMobile),
     mobileContactClass: classFor(activePage, 'contact', activeMobile, inactiveMobile),
     mobilePayrollClass: classFor(activePage, 'payroll', activeMobileTool, inactiveMobileTool),
+    mobileHrMetricsClass: classFor(activePage, 'hr-metrics', activeMobileTool, inactiveMobileTool),
     mobileComplianceClass: classFor(activePage, 'compliance', activeMobileTool, inactiveMobileTool),
     mobileQuizClass: classFor(activePage, 'quiz', activeMobileTool, inactiveMobileTool),
+    mobileCafeteriaClass: classFor(activePage, 'service-cafeteria', activeMobileTool, inactiveMobileTool),
   });
 }
 
@@ -171,6 +177,7 @@ function sharedPartialsPlugin() {
 }
 
 export default {
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [sharedPartialsPlugin(), localApiPlugin()],
   build: {
     sourcemap: false,
@@ -188,6 +195,8 @@ export default {
         'why-us': resolve(__dirname, 'why-us.html'),
         'compliance-check': resolve(__dirname, 'compliance-check.html'),
         'payroll-calculator': resolve(__dirname, 'payroll-calculator.html'),
+        'hr-metrics-calculator': resolve(__dirname, 'hr-metrics-calculator.html'),
+        'service-cafeteria': resolve(__dirname, 'service-cafeteria.html'),
       }
     }
   }
