@@ -371,4 +371,101 @@
     resultMeaning.textContent = metric.measures;
     resultFormula.textContent = metric.formula;
   });
+
+  // Download HR Metrics Report
+  document.getElementById('downloadHrReport')?.addEventListener('click', async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 20;
+
+      // Add header
+      doc.setFontSize(20);
+      doc.setFont(undefined, 'bold');
+      doc.text('HR Metrics Report', 14, y);
+      
+      y += 10;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-ZM')} ${new Date().toLocaleTimeString()}`, 14, y);
+      
+      y += 12;
+      doc.line(14, y, pageWidth - 14, y);
+      y += 8;
+
+      // Get the current result displayed
+      const metricName = resultLabel.textContent;
+      const metricValue = resultValue.textContent;
+      const metricMeaning = resultMeaning.textContent;
+      const metricFormula = resultFormula.textContent;
+
+      if (metricValue !== '--') {
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Calculated Metric', 14, y);
+        
+        y += 8;
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text(metricName, 14, y);
+        
+        y += 8;
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text(metricValue, 14, y);
+        
+        y += 10;
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        const meaningText = doc.splitTextToSize(metricMeaning, pageWidth - 28);
+        doc.text(meaningText, 14, y);
+        
+        y += meaningText.length * 5 + 5;
+        doc.setFont(undefined, 'bold');
+        doc.text('Formula:', 14, y);
+        
+        y += 5;
+        doc.setFont(undefined, 'normal');
+        const formulaText = doc.splitTextToSize(metricFormula, pageWidth - 28);
+        doc.text(formulaText, 14, y);
+        
+        y += formulaText.length * 5 + 12;
+      } else {
+        doc.setFontSize(12);
+        doc.text('No metrics calculated yet. Calculate a metric to generate a report.', 14, y);
+        y += 20;
+      }
+
+      // Add contact note
+      doc.line(14, y, pageWidth - 14, y);
+      y += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text('For a Full Detailed HR Metrics Report:', 14, y);
+      
+      y += 6;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      const contactText = doc.splitTextToSize(
+        'Contact BMAS for a comprehensive HR metrics report including benchmarking, trend analysis, recommendations, and strategic insights tailored to your organization.',
+        pageWidth - 28
+      );
+      doc.text(contactText, 14, y);
+      
+      y += contactText.length * 4 + 5;
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(9);
+      doc.text('WhatsApp: +260 972 289 789', 14, y);
+      y += 5;
+      doc.text('Website: www.bmas.co.za', 14, y);
+
+      // Save the PDF
+      doc.save(`HR-Metrics-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Unable to generate PDF. Please try again.');
+    }
+  });
 })();

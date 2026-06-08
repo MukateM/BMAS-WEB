@@ -405,7 +405,7 @@ function App() {
                     <h2 className="mt-4 text-xl font-bold text-slate-950">{service.service_name}</h2>
                     <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{service.description}</p>
                     <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="text-sm font-bold text-slate-800">{priceText(service)}</span>
+                      {/* <span className="text-sm font-bold text-slate-800">{priceText(service)}</span> */}
                       <button onClick={() => addService(service)} className="cafeteria-primary rounded px-4 py-2 text-sm font-semibold disabled:bg-slate-300" disabled={selectedIds.includes(service.id)}>
                         {selectedIds.includes(service.id) ? 'Selected' : 'Select'}
                       </button>
@@ -437,18 +437,18 @@ function App() {
                       ) : item.pricing_type !== 'negotiable' && (
                         <input type="number" min={item.minimum_quantity || 1} max={item.maximum_quantity || 999} value={item.quantity} onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) })} className="mt-3 w-full rounded border px-3 py-2 text-sm" />
                       )}
-                      <div className="mt-3 flex justify-between text-sm">
+                      {/* <div className="mt-3 flex justify-between text-sm">
                         <span className="text-slate-500">{priceText(item)}</span>
                         <strong>{item.pricing_type === 'negotiable' ? 'TBC' : money(lineTotal(item))}</strong>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
                 <div className="mt-5 space-y-3 border-t pt-4 text-sm text-slate-600">
-                  <div className="flex justify-between"><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div>
+                  {/* <div className="flex justify-between"><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div>
                   <div className="flex justify-between"><span>Bundle discount</span><strong>-{money(totals.discount)}</strong></div>
                   <div className="flex justify-between"><span>VAT 16%</span><strong>{money(totals.vat)}</strong></div>
-                  <div className="flex justify-between border-t pt-3 text-base text-slate-950"><span>Total</span><strong>{money(totals.total)}</strong></div>
+                  <div className="flex justify-between border-t pt-3 text-base text-slate-950"><span>Total</span><strong>{money(totals.total)}</strong></div> */}
                   {(requestSummary.quantityInputs > 0 || requestSummary.salaryInputs > 0) && <div className="cafeteria-note rounded p-3">Adjust quantities or salary inputs to update your quotation total.</div>}
                   <button onClick={sendToWhatsApp} disabled={cart.length === 0} className="cafeteria-whatsapp-btn w-full rounded px-4 py-2.5 text-sm font-semibold disabled:opacity-40">
                     Send quotation to WhatsApp
