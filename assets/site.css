@@ -28,6 +28,23 @@ body {
   background-position: -260px 180px, calc(100% + 220px) 520px, 55% 100%;
 }
 
+.tools-showcase {
+  background:
+    linear-gradient(135deg, rgba(var(--bmas-navy-rgb),0.98) 0%, rgba(var(--bmas-teal-rgb),0.96) 56%, #0d5368 100%),
+    var(--bmas-teal);
+  box-shadow: 0 24px 55px rgba(var(--bmas-navy-rgb),0.18);
+}
+
+.tools-showcase-card {
+  border: 1px solid rgba(238,246,251,0.24);
+  background: rgba(238,246,251,0.10);
+}
+
+.tools-showcase-card:hover {
+  border-color: rgba(238,246,251,0.42);
+  background: rgba(238,246,251,0.16);
+}
+
 body.inner-brand-bg {
   position: relative;
 }

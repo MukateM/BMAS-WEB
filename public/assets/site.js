@@ -265,6 +265,11 @@
     return String(value);
   }
 
+  function safeApplicationEmail(value) {
+    const email = safeText(value).trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : 'bmasrecruitment@gmail.com';
+  }
+
   function isAllowedAssetPath(path) {
     const p = safeText(path).trim();
     return p.startsWith('assets/') || p.startsWith('./assets/');
@@ -285,7 +290,7 @@
   }
 
   function buildApplicationEmailHref(job) {
-    const applyEmail = safeText(job.applicationEmail || 'bmasrecruitment@gmail.com');
+    const applyEmail = safeApplicationEmail(job.applicationEmail);
     const title = safeText(job.title);
     const body = [
       `Position applied for: ${title}`,
@@ -460,7 +465,7 @@
       copyEmail.addEventListener('click', async () => {
         const original = copyEmail.textContent;
         try {
-          await copyText(safeText(job.applicationEmail || 'bmasrecruitment@gmail.com'));
+          await copyText(safeApplicationEmail(job.applicationEmail));
           copyEmail.textContent = 'Copied';
         } catch (_err) {
           copyEmail.textContent = 'Copy failed';

@@ -3,6 +3,53 @@
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
+  function injectBusinessSchema() {
+    if (document.getElementById('businessStructuredData')) return;
+
+    const script = document.createElement('script');
+    script.id = 'businessStructuredData';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ProfessionalService',
+      '@id': 'https://www.bmas.co.za/#business',
+      name: 'Business Momentum Advisory Services Limited',
+      alternateName: 'BMAS',
+      url: 'https://www.bmas.co.za/',
+      logo: 'https://www.bmas.co.za/bmas.png',
+      image: 'https://www.bmas.co.za/bmas.png',
+      description:
+        'HR outsourcing, payroll, statutory compliance, HRIS, and business advisory support for SMEs and high-growth businesses in Zambia.',
+      telephone: '+2609722897789',
+      email: 'bmasfrontdesk@gmail.com',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '7 Nalikwanda Road, Woodlands',
+        addressLocality: 'Lusaka',
+        addressCountry: 'ZM',
+      },
+      areaServed: [
+        { '@type': 'Country', name: 'Zambia' },
+        { '@type': 'Place', name: 'Regional and international clients' },
+      ],
+      sameAs: [
+        'https://www.linkedin.com/company/business-momentum-advisory-services-limited',
+        'https://web.facebook.com/p/Business-Momentum-Advisory-Services-Limited-61553425503776/',
+      ],
+      knowsAbout: [
+        'HR outsourcing Zambia',
+        'Payroll outsourcing Lusaka',
+        'NAPSA compliance',
+        'NHIMA compliance',
+        'Employment law Zambia',
+        'HRIS implementation',
+      ],
+    });
+    document.head.appendChild(script);
+  }
+
+  injectBusinessSchema();
+
   const typedHero = document.querySelector('[data-typed-text]');
   if (typedHero && typedHero.dataset.typedStarted !== 'true') {
     typedHero.dataset.typedStarted = 'true';
@@ -285,6 +332,11 @@
     return String(value);
   }
 
+  function safeApplicationEmail(value) {
+    const email = safeText(value).trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : 'bmasrecruitment@gmail.com';
+  }
+
   function isAllowedAssetPath(path) {
     const p = safeText(path).trim();
     return p.startsWith('assets/') || p.startsWith('./assets/');
@@ -305,7 +357,7 @@
   }
 
   function buildApplicationEmailHref(job) {
-    const applyEmail = safeText(job.applicationEmail || 'bmasrecruitment@gmail.com');
+    const applyEmail = safeApplicationEmail(job.applicationEmail);
     const title = safeText(job.title);
     const body = [
       `Position applied for: ${title}`,
@@ -353,6 +405,11 @@
 
     const graph = jobs.map((job) => ({
       '@type': 'JobPosting',
+      identifier: {
+        '@type': 'PropertyValue',
+        name: 'BMAS Job Post',
+        value: safeText(job.id || job.title),
+      },
       title: safeText(job.title),
       description: [
         safeText(job.jobPurpose || job.summary),
@@ -480,7 +537,7 @@
       copyEmail.addEventListener('click', async () => {
         const original = copyEmail.textContent;
         try {
-          await copyText(safeText(job.applicationEmail || 'bmasrecruitment@gmail.com'));
+          await copyText(safeApplicationEmail(job.applicationEmail));
           copyEmail.textContent = 'Copied';
         } catch (_err) {
           copyEmail.textContent = 'Copy failed';
@@ -564,20 +621,38 @@
     if (!statusEl || !listEl || !searchEl || !typeEl || !locationEl) return;
 
     const src = jobsBoard.getAttribute('data-jobs-src') || 'assets/jobs.json';
+    const fallbackSrc = jobsBoard.getAttribute('data-jobs-fallback-src') || '';
+
+    async function fetchJobsPayload(url) {
+      const res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
 
     let payload;
+    let loadError;
     try {
-      const res = await fetch(src, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      payload = await res.json();
+      payload = await fetchJobsPayload(src);
     } catch (err) {
-      statusEl.textContent = `Unable to load roles (${err.message}).`;
-      return;
+      loadError = err;
+      if (fallbackSrc && fallbackSrc !== src) {
+        try {
+          payload = await fetchJobsPayload(fallbackSrc);
+        } catch (_fallbackErr) {
+          statusEl.textContent = `Unable to load roles (${err.message}). You can still submit a general application below.`;
+          return;
+        }
+      } else {
+        statusEl.textContent = `Unable to load roles (${err.message}). You can still submit a general application below.`;
+        return;
+      }
     }
 
     const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
     if (jobs.length === 0) {
-      statusEl.textContent = 'No roles listed yet.';
+      statusEl.textContent = loadError
+        ? 'No roles currently open. Live portal jobs could not be reached, but you can submit a general application below.'
+        : 'No roles currently open. You can submit a general application below.';
       return;
     }
 
