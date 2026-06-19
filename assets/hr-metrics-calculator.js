@@ -277,10 +277,13 @@
   const resultMeaning = document.getElementById('metricResultMeaning');
   const resultFormula = document.getElementById('metricResultFormula');
   const clearButton = document.getElementById('clearHrMetrics');
-  const library = document.getElementById('metricLibrary');
-  const search = document.getElementById('metricSearch');
+  const clearReportButton = document.getElementById('clearHrReport');
+  const reportList = document.getElementById('metricReportList');
+  const reportEmpty = document.getElementById('metricReportEmpty');
 
-  if (!form || !select || !inputWrap || !context || !resultValue || !resultLabel || !resultMeaning || !resultFormula || !library) return;
+  if (!form || !select || !inputWrap || !context || !resultValue || !resultLabel || !resultMeaning || !resultFormula) return;
+
+  const savedCalculations = [];
 
   function currentMetric() {
     return metrics.find((metric) => metric.id === select.value) || metrics[0];
@@ -315,37 +318,104 @@
     }, {});
   }
 
-  function renderLibrary() {
-    const query = String(search?.value || '').trim().toLowerCase();
-    const filtered = metrics.filter((metric) =>
-      `${metric.name} ${metric.category} ${metric.measures} ${metric.formula}`.toLowerCase().includes(query),
-    );
+  function renderReportList() {
+    if (!reportList || !reportEmpty) return;
+    reportList.textContent = '';
+    reportEmpty.classList.toggle('hidden', savedCalculations.length > 0);
 
-    library.innerHTML = filtered.map((metric) => `
-      <article class="rounded-lg border bg-slate-50 p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">${metric.category}</div>
-        <h3 class="mt-2 font-bold text-slate-950">${metric.name}</h3>
-        <p class="mt-2 text-sm leading-6 text-slate-600">${metric.measures}</p>
-        <div class="mt-3 rounded bg-white p-3 text-xs text-slate-600">${metric.formula}</div>
-        <button type="button" data-metric="${metric.id}" class="mt-3 rounded border px-3 py-1.5 text-sm font-semibold hover:bg-white">Calculate this</button>
-      </article>
-    `).join('');
+    savedCalculations.forEach((item, index) => {
+      const row = document.createElement('article');
+      row.className = 'rounded border bg-slate-50 p-4';
+
+      const top = document.createElement('div');
+      top.className = 'flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between';
+
+      const text = document.createElement('div');
+      const category = document.createElement('div');
+      category.className = 'text-xs font-semibold uppercase tracking-[0.14em] text-amber-700';
+      category.textContent = item.category;
+      const title = document.createElement('h3');
+      title.className = 'mt-1 font-bold text-slate-950';
+      title.textContent = item.name;
+      const meaning = document.createElement('p');
+      meaning.className = 'mt-1 text-sm leading-6 text-slate-600';
+      meaning.textContent = item.meaning;
+      text.appendChild(category);
+      text.appendChild(title);
+      text.appendChild(meaning);
+
+      const valueWrap = document.createElement('div');
+      valueWrap.className = 'shrink-0 text-left sm:text-right';
+      const value = document.createElement('div');
+      value.className = 'text-2xl font-extrabold text-slate-950';
+      value.textContent = item.value;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'mt-2 text-sm font-semibold text-slate-500 hover:text-slate-900';
+      remove.textContent = 'Remove';
+      remove.addEventListener('click', () => {
+        savedCalculations.splice(index, 1);
+        renderReportList();
+      });
+      valueWrap.appendChild(value);
+      valueWrap.appendChild(remove);
+
+      top.appendChild(text);
+      top.appendChild(valueWrap);
+
+      const formula = document.createElement('div');
+      formula.className = 'mt-3 rounded bg-white p-3 text-xs text-slate-600';
+      formula.textContent = item.formula;
+
+      row.appendChild(top);
+      row.appendChild(formula);
+      reportList.appendChild(row);
+    });
+  }
+
+  function saveCalculation(metric, values, result) {
+    savedCalculations.push({
+      category: metric.category,
+      name: metric.name,
+      value: metric.format(result),
+      meaning: metric.measures,
+      formula: metric.formula,
+      inputs: metric.inputs.map(([key, label]) => ({
+        label,
+        value: values[key],
+      })),
+    });
+    renderReportList();
+  }
+
+  function loadWatermarkDataUrl() {
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 900;
+        canvas.height = 900;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve('');
+          return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 0.07;
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      image.onerror = () => resolve('');
+      image.src = 'bmas.png';
+    });
   }
 
   renderMetricOptions();
   renderInputs();
-  renderLibrary();
+  renderReportList();
 
   select.addEventListener('change', renderInputs);
-  search?.addEventListener('input', renderLibrary);
-
-  library.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-metric]');
-    if (!button) return;
-    select.value = button.dataset.metric;
-    renderInputs();
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
 
   clearButton?.addEventListener('click', () => {
     form.reset();
@@ -370,20 +440,48 @@
     resultLabel.textContent = metric.name;
     resultMeaning.textContent = metric.measures;
     resultFormula.textContent = metric.formula;
+    saveCalculation(metric, values, result);
   });
 
-  // Download HR Metrics Report
+  clearReportButton?.addEventListener('click', () => {
+    savedCalculations.splice(0, savedCalculations.length);
+    renderReportList();
+  });
+
   document.getElementById('downloadHrReport')?.addEventListener('click', async () => {
+    if (savedCalculations.length === 0) {
+      alert('Add at least one calculated metric before downloading a summary.');
+      return;
+    }
+
     try {
       const { jsPDF } = await import('jspdf');
+      const watermark = await loadWatermarkDataUrl();
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       let y = 20;
 
-      // Add header
+      const addWatermark = () => {
+        if (!watermark) return;
+        const size = Math.min(pageWidth, pageHeight) * 0.56;
+        const x = (pageWidth - size) / 2;
+        const yPos = (pageHeight - size) / 2;
+        doc.addImage(watermark, 'PNG', x, yPos, size, size);
+      };
+
+      const ensureSpace = (needed) => {
+        if (y + needed <= pageHeight - 18) return;
+        doc.addPage();
+        addWatermark();
+        y = 18;
+      };
+
+      addWatermark();
+
       doc.setFontSize(20);
       doc.setFont(undefined, 'bold');
-      doc.text('HR Metrics Report', 14, y);
+      doc.text('HR Metrics Summary', 14, y);
       
       y += 10;
       doc.setFontSize(10);
@@ -394,62 +492,68 @@
       doc.line(14, y, pageWidth - 14, y);
       y += 8;
 
-      // Get the current result displayed
-      const metricName = resultLabel.textContent;
-      const metricValue = resultValue.textContent;
-      const metricMeaning = resultMeaning.textContent;
-      const metricFormula = resultFormula.textContent;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      const introText = doc.splitTextToSize(
+        'This self-service summary records the HR metrics calculated in this online tool. It is not a full HR analytics report and does not include benchmarking, root-cause analysis, or recommendations.',
+        pageWidth - 28
+      );
+      doc.text(introText, 14, y);
+      y += introText.length * 5 + 8;
 
-      if (metricValue !== '--') {
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text('Calculated Metric', 14, y);
-        
-        y += 8;
+      savedCalculations.forEach((item, index) => {
+        ensureSpace(42);
         doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
-        doc.text(metricName, 14, y);
-        
-        y += 8;
+        doc.text(`${index + 1}. ${item.name}`, 14, y);
+        y += 7;
+
         doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text(metricValue, 14, y);
-        
-        y += 10;
+        doc.text(item.value, 14, y);
+        y += 8;
+
         doc.setFontSize(9);
         doc.setFont(undefined, 'normal');
-        const meaningText = doc.splitTextToSize(metricMeaning, pageWidth - 28);
+        doc.text(item.category, 14, y);
+        y += 5;
+
+        const meaningText = doc.splitTextToSize(item.meaning, pageWidth - 28);
+        ensureSpace(meaningText.length * 5 + 18);
         doc.text(meaningText, 14, y);
-        
-        y += meaningText.length * 5 + 5;
+        y += meaningText.length * 5 + 3;
+
         doc.setFont(undefined, 'bold');
         doc.text('Formula:', 14, y);
-        
         y += 5;
         doc.setFont(undefined, 'normal');
-        const formulaText = doc.splitTextToSize(metricFormula, pageWidth - 28);
+        const formulaText = doc.splitTextToSize(item.formula, pageWidth - 28);
         doc.text(formulaText, 14, y);
-        
-        y += formulaText.length * 5 + 12;
-      } else {
-        doc.setFontSize(12);
-        doc.text('No metrics calculated yet. Calculate a metric to generate a report.', 14, y);
-        y += 20;
-      }
+        y += formulaText.length * 5 + 4;
 
-      // Add contact note
+        const inputText = doc.splitTextToSize(
+          `Inputs: ${item.inputs.map((input) => `${input.label}: ${input.value}`).join('; ')}`,
+          pageWidth - 28
+        );
+        ensureSpace(inputText.length * 5 + 10);
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        doc.text(inputText, 14, y);
+        y += inputText.length * 4 + 8;
+      });
+
+      ensureSpace(42);
       doc.line(14, y, pageWidth - 14, y);
       y += 8;
       
       doc.setFontSize(10);
       doc.setFont(undefined, 'bold');
-      doc.text('For a Full Detailed HR Metrics Report:', 14, y);
+      doc.text('Need the full HR metrics report?', 14, y);
       
       y += 6;
       doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
       const contactText = doc.splitTextToSize(
-        'Contact BMAS for a comprehensive HR metrics report including benchmarking, trend analysis, recommendations, and strategic insights tailored to your organization.',
+        'Contact us for benchmarking, trend analysis, risk interpretation, recommendations, and a management-ready HR analytics report tailored to your organization.',
         pageWidth - 28
       );
       doc.text(contactText, 14, y);
@@ -461,8 +565,7 @@
       y += 5;
       doc.text('Website: www.bmas.co.za', 14, y);
 
-      // Save the PDF
-      doc.save(`HR-Metrics-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      doc.save(`HR-Metrics-Summary-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Unable to generate PDF. Please try again.');

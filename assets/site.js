@@ -445,6 +445,133 @@
   }
 
   function buildJobCard(job) {
+    {
+      const card = document.createElement('article');
+      card.className = 'bmas-job-card';
+
+      const top = document.createElement('div');
+      top.className = 'jc-main';
+
+      const title = document.createElement('h3');
+      title.className = 'jc-role';
+      title.textContent = safeText(job.title) || 'Untitled role';
+
+      const meta = document.createElement('div');
+      meta.className = 'jc-meta';
+      [
+        { value: job.location, className: 'badge-loc' },
+        { value: job.workType, className: 'badge-type' },
+      ].forEach((item) => {
+        const text = safeText(item.value);
+        if (!text) return;
+        const badge = document.createElement('span');
+        badge.className = `jc-badge ${item.className}`;
+        badge.textContent = text;
+        meta.appendChild(badge);
+      });
+
+      const details = document.createElement('a');
+      details.href = `job-details.html?job=${encodeURIComponent(safeText(job.id || job.title))}`;
+      details.className = 'jc-details-trigger';
+      details.textContent = 'View details';
+
+      top.appendChild(title);
+      if (meta.childNodes.length) top.appendChild(meta);
+      top.appendChild(details);
+      card.appendChild(top);
+      return card;
+
+      const detailsPanel = document.createElement('div');
+      detailsPanel.className = 'jc-details hidden';
+
+      const addText = (heading, value) => {
+        const text = safeText(value);
+        if (!text) return;
+        const block = document.createElement('div');
+        block.className = 'jc-detail-block';
+        const h = document.createElement('div');
+        h.className = 'jc-details-heading';
+        h.textContent = heading;
+        const p = document.createElement('p');
+        p.textContent = text;
+        block.appendChild(h);
+        block.appendChild(p);
+        detailsPanel.appendChild(block);
+      };
+
+      const addList = (heading, items) => {
+        if (!Array.isArray(items) || items.length === 0) return;
+        const block = document.createElement('div');
+        block.className = 'jc-detail-block';
+        const h = document.createElement('div');
+        h.className = 'jc-details-heading';
+        h.textContent = heading;
+        const ul = document.createElement('ul');
+        items.forEach((item) => {
+          const li = document.createElement('li');
+          li.textContent = safeText(item);
+          ul.appendChild(li);
+        });
+        block.appendChild(h);
+        block.appendChild(ul);
+        detailsPanel.appendChild(block);
+      };
+
+      addText('Summary', job.summary);
+      addText('Job Purpose', job.jobPurpose);
+      addText('Location', job.location);
+      addText('Work Type', job.workType);
+      addText('Work Mode', job.workMode);
+      addText('Posted', formatDate(job.postedAt));
+      addText('Apply By', formatDate(job.applyBy));
+      addList('Key Responsibilities', job.responsibilities);
+      addList('Qualifications and Experience', job.requirements);
+      addList('Key Competencies', job.competencies);
+
+      const actions = document.createElement('div');
+      actions.className = 'jc-actions';
+      const applyClosed = isAfterApplyBy(job.applyBy);
+      const apply = document.createElement(applyClosed ? 'span' : 'a');
+      apply.className = applyClosed ? 'jc-action-muted' : 'jc-action-primary';
+      apply.textContent = applyClosed ? 'Applications closed' : 'Email to apply';
+      if (!applyClosed) apply.href = buildApplicationEmailHref(job);
+      actions.appendChild(apply);
+
+      if (!applyClosed) {
+        const copyEmail = document.createElement('button');
+        copyEmail.type = 'button';
+        copyEmail.className = 'jc-action-secondary';
+        copyEmail.textContent = 'Copy email';
+        copyEmail.addEventListener('click', async () => {
+          const original = copyEmail.textContent;
+          try {
+            await copyText(safeApplicationEmail(job.applicationEmail));
+            copyEmail.textContent = 'Copied';
+          } catch (_err) {
+            copyEmail.textContent = 'Copy failed';
+          }
+          window.setTimeout(() => {
+            copyEmail.textContent = original;
+          }, 1800);
+        });
+        actions.appendChild(copyEmail);
+      }
+      detailsPanel.appendChild(actions);
+
+      details.addEventListener('click', () => {
+        const isHidden = detailsPanel.classList.toggle('hidden');
+        details.textContent = isHidden ? 'View details' : 'Hide details';
+        details.setAttribute('aria-expanded', String(!isHidden));
+      });
+
+      top.appendChild(title);
+      if (meta.childNodes.length) top.appendChild(meta);
+      top.appendChild(details);
+      card.appendChild(top);
+      card.appendChild(detailsPanel);
+      return card;
+    }
+
     const card = document.createElement('article');
     card.className = 'border rounded-lg bg-white shadow-sm overflow-hidden';
 

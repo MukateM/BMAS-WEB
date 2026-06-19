@@ -25,23 +25,67 @@
   <link rel="icon" type="image/png" href="bmas.png" />
   <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
   <link rel="stylesheet" href="assets/site.css" />
+  <style>
+    .metrics-shell { max-width: 72rem; }
+    .metrics-panel { border:1px solid #e2e8f0; background:#fff; border-radius:0.5rem; box-shadow:0 12px 34px rgba(15,23,42,.06); }
+    .metrics-hero { position:relative; overflow:hidden; }
+    .metrics-hero::before { content:''; position:absolute; inset:0 0 auto 0; height:4px; background:linear-gradient(90deg,#12727C,#f59e0b); }
+    .metrics-eyebrow { color:#b45309; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.16em; }
+    .metrics-hero-grid { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1.25rem; align-items:end; }
+    .metrics-mini-card { min-width:12rem; border-left:1px solid #e2e8f0; padding-left:1.25rem; }
+    .metrics-mini-card .num { color:#0f172a; font-size:2rem; line-height:1; font-weight:900; }
+    .metrics-mini-card .lbl { margin-top:.35rem; color:#64748b; font-size:.8rem; line-height:1.45; }
+    .metric-card-title { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+    .metric-card-title span { color:#64748b; font-size:.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.14em; }
+    .metric-card-title strong { color:#0f172a; font-size:1rem; }
+    #hrMetricsForm { background:linear-gradient(180deg,#f8fafc 0%,#fff 100%); }
+    #metricContext { border-color:#dbeafe; background:#f8fbff; }
+    #metricResult { position:relative; overflow:hidden; }
+    #metricResult::before { content:''; position:absolute; inset:0 0 auto 0; height:4px; background:#12727C; }
+    #metricResultValue { color:#0f172a; letter-spacing:0; }
+    .metric-formula-box { border:1px solid #fde68a; background:#fffbeb; }
+    .summary-toolbar { border-bottom:1px solid #e2e8f0; padding-bottom:1.25rem; }
+    #metricReportList article { transition:border-color .15s, box-shadow .15s; }
+    #metricReportList article:hover { border-color:#bfdbfe; box-shadow:0 8px 22px rgba(15,23,42,.06); }
+    .metrics-cta { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; align-items:center; border:1px solid #bae6fd; background:linear-gradient(135deg,#f0f9ff,#fff); border-radius:.5rem; padding:1.1rem 1.25rem; }
+    .metrics-cta h2 { color:#0f172a; font-size:1rem; font-weight:800; }
+    .metrics-cta p { margin-top:.25rem; color:#475569; font-size:.875rem; line-height:1.55; }
+    .metrics-cta a { display:inline-flex; align-items:center; justify-content:center; min-height:2.35rem; border-radius:.5rem; background:#12727C; color:#fff; padding:.55rem .9rem; font-size:.875rem; font-weight:800; text-decoration:none; white-space:nowrap; }
+    .metrics-cta a:hover { background:#0f5f68; }
+    @media(max-width:760px) {
+      .metrics-hero-grid, .metrics-cta { grid-template-columns:1fr; }
+      .metrics-mini-card { border-left:0; padding-left:0; border-top:1px solid #e2e8f0; padding-top:1rem; }
+    }
+  </style>
 </head>
 
 <body class="antialiased text-gray-800 bg-gray-50 inner-brand-bg" data-page="hr-metrics">
 <!-- bmas:header -->
 
-<main id="main" class="max-w-6xl mx-auto px-6 pt-28 pb-16 space-y-8">
-  <section class="bg-white p-6 md:p-8 rounded-lg shadow">
-    <div class="max-w-3xl">
-      <p class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-600">BMAS HR Metrics</p>
-      <h1 class="mt-3 text-3xl font-extrabold text-slate-900">HR Metrics Calculator</h1>
-      <p class="mt-3 text-slate-600">
-        Calculate practical HR indicators for management reports, workforce reviews, and people analytics dashboards.
-      </p>
+<main id="main" class="metrics-shell mx-auto px-6 pt-28 pb-16 space-y-8">
+  <section class="metrics-panel metrics-hero p-6 md:p-8">
+    <div class="metrics-hero-grid">
+      <div class="max-w-3xl">
+        <p class="metrics-eyebrow">HR analytics tool</p>
+        <h1 class="mt-3 text-3xl font-extrabold text-slate-900 md:text-4xl">HR Metrics Calculator</h1>
+        <p class="mt-3 max-w-2xl text-slate-600">
+          Calculate practical HR indicators for management reports, workforce reviews, and people analytics dashboards.
+        </p>
+      </div>
+      <div class="metrics-mini-card" aria-label="Available metrics">
+        <div class="num">20</div>
+        <div class="lbl">available workforce, recruitment, performance, and engagement metrics</div>
+      </div>
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
       <form id="hrMetricsForm" class="rounded-lg border bg-slate-50 p-5">
+        <div class="metric-card-title">
+          <div>
+            <span>Calculator</span>
+            <strong class="block">Choose a metric</strong>
+          </div>
+        </div>
         <label for="metricSelect" class="block text-sm font-semibold text-slate-800">Metric</label>
         <select id="metricSelect" class="mt-2 w-full rounded border px-3 py-2"></select>
 
@@ -49,33 +93,53 @@
         <div id="metricInputs" class="mt-4 grid gap-4 sm:grid-cols-2"></div>
 
         <div class="mt-5 flex flex-wrap gap-3">
-          <button type="submit" class="rounded bg-slate-900 px-4 py-2 font-semibold text-white">Calculate</button>
+          <button type="submit" class="rounded bg-slate-900 px-4 py-2 font-semibold text-white">Calculate &amp; add</button>
           <button id="clearHrMetrics" type="button" class="rounded border px-4 py-2 font-semibold">Clear</button>
-          <button id="downloadHrReport" type="button" class="rounded border border-slate-900 bg-slate-50 px-4 py-2 font-semibold text-slate-900 hover:bg-slate-100">Download Report</button>
         </div>
       </form>
 
       <section id="metricResult" class="rounded-lg border bg-white p-5">
-        <div class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Result</div>
+        <div class="metric-card-title">
+          <div>
+            <span>Result</span>
+            <strong class="block">Current calculation</strong>
+          </div>
+        </div>
         <div id="metricResultValue" class="mt-4 text-4xl font-extrabold text-slate-950">--</div>
         <div id="metricResultLabel" class="mt-2 text-lg font-bold text-slate-900">Select a metric and enter values.</div>
         <p id="metricResultMeaning" class="mt-3 text-sm leading-6 text-slate-600"></p>
-        <div class="mt-5 rounded bg-amber-50 p-4 text-sm text-amber-900">
+        <div class="metric-formula-box mt-5 rounded p-4 text-sm text-amber-900">
           <div class="font-semibold">Formula</div>
           <div id="metricResultFormula" class="mt-1"></div>
         </div>
       </section>
     </div>
+
+    <section class="mt-6 rounded-lg border bg-white p-5">
+      <div class="summary-toolbar flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Summary report</div>
+          <h2 class="mt-1 text-xl font-extrabold text-slate-900">Saved calculations</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            We can prepare a full report with benchmarking, interpretation, and recommendations.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="downloadHrReport" type="button" class="rounded border border-slate-900 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100">Download summary</button>
+          <button id="clearHrReport" type="button" class="rounded border px-4 py-2 text-sm font-semibold">Clear summary</button>
+        </div>
+      </div>
+      <div id="metricReportList" class="mt-5 grid gap-3"></div>
+      <p id="metricReportEmpty" class="mt-5 rounded bg-slate-50 p-4 text-sm text-slate-600">No metrics added yet.</p>
+    </section>
   </section>
 
-  <section class="bg-white p-6 md:p-8 rounded-lg shadow">
-    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div>
-        <h2 class="text-2xl font-extrabold text-slate-900">Top 20 HR Metrics</h2>
-      </div>
-      <input id="metricSearch" type="search" class="rounded border px-3 py-2 text-sm" placeholder="Search metrics" />
+  <section class="metrics-cta">
+    <div>
+      <h2>Need interpretation, benchmarking, or recommendations?</h2>
+      <p>We can turn these calculations into a management-ready HR analytics report with context and practical next steps.</p>
     </div>
-    <div id="metricLibrary" class="mt-5 grid gap-4 md:grid-cols-2"></div>
+    <a href="https://wa.me/2609722897789?text=Hello%20BMAS%2C%20I%20would%20like%20help%20with%20an%20HR%20metrics%20report." target="_blank" rel="noopener">Talk to us</a>
   </section>
 </main>
 

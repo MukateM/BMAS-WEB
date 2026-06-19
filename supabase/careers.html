@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Careers &amp; Jobs &ndash; Business Momentum Advisory Services (BMAS)</title>
+  <meta name="description" content="Explore roles BMAS is recruiting for and submit an application. You can also send a general application to BMAS." />
+  <link rel="canonical" href="https://www.bmas.co.za/careers">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="theme-color" content="#12727C" />
+
+  <meta property="og:title" content="Careers &amp; Jobs &ndash; BMAS">
+  <meta property="og:description" content="Explore roles BMAS is recruiting for and submit an application.">
+  <meta property="og:site_name" content="Business Momentum Advisory Services (BMAS)">
+  <meta property="og:image" content="https://www.bmas.co.za/bmas.png">
+  <meta property="og:image:alt" content="Careers and jobs at BMAS">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bmas.co.za/careers">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Careers and Jobs - BMAS">
+  <meta name="twitter:description" content="Explore roles BMAS is recruiting for and submit an application.">
+  <meta name="twitter:image" content="https://www.bmas.co.za/bmas.png">
+  <meta name="twitter:image:alt" content="Careers and jobs at BMAS">
+
+  <link rel="icon" type="image/png" href="bmas.png" />
+  <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
+  <link rel="stylesheet" href="assets/site.css" />
+
+  <style>
+    /* ── Careers page overrides ── */
+    .careers-hero { margin-bottom: 2rem; }
+    .careers-hero h1 { font-size: 1.75rem; font-weight: 700; color: #0f172a; }
+    .careers-hero p  { margin-top: 0.375rem; font-size: 0.9375rem; color: #475569; line-height: 1.6; }
+
+    /* Stat bar */
+    .careers-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem; margin-bottom: 1.75rem; }
+    .careers-stat  { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem 1.25rem; }
+    .careers-stat .cs-num { font-size: 1.5rem; font-weight: 700; color: #0f172a; line-height: 1; }
+    .careers-stat .cs-lbl { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+
+    /* Filter bar */
+    .careers-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; align-items: center; }
+    .careers-filters input,
+    .careers-filters select { font-size: 0.8125rem; padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: #fff; color: #0f172a; }
+    .careers-filters input  { flex: 1; min-width: 180px; }
+    .careers-filters select { min-width: 130px; }
+    .careers-filters input:focus,
+    .careers-filters select:focus { outline: none; border-color: #12727C; box-shadow: 0 0 0 3px rgba(18,114,124,.12); }
+
+    /* Job cards grid — rendered by site.js into #jobsList */
+    #jobsList { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 0.875rem; }
+
+    /* Card styles site.js should apply — provide defaults so cards look good */
+    .bmas-job-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.875rem;
+      padding: 1.1rem 1.25rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .bmas-job-card:hover { border-color: #12727C; box-shadow: 0 2px 8px rgba(18,114,124,.08); }
+    .bmas-job-card .jc-role    { font-size: 0.9375rem; font-weight: 600; color: #0f172a; }
+    .bmas-job-card .jc-company { font-size: 0.8125rem; color: #64748b; margin-top: 2px; }
+    .bmas-job-card .jc-meta    { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem; }
+    .bmas-job-card .jc-badge   { font-size: 0.6875rem; padding: 2px 9px; border-radius: 999px; font-weight: 500; }
+    .badge-type { background: #e0f2f1; color: #00695c; }
+    .badge-loc  { background: #e3f2fd; color: #1565c0; }
+    .badge-new  { background: #fff8e1; color: #e65100; }
+    .bmas-job-card .jc-deadline { margin-top: 0.625rem; font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+
+    /* Status text */
+    #jobsStatus { font-size: 0.875rem; color: #64748b; margin-bottom: 0.75rem; min-height: 1.4em; }
+
+    /* How-to-apply panel */
+    .careers-apply-panel {
+      margin-top: 1.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.875rem;
+      overflow: hidden;
+    }
+    .cap-header {
+      padding: 0.875rem 1.25rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 0.625rem;
+    }
+    .cap-header svg { flex-shrink: 0; color: #12727C; }
+    .cap-header h2  { font-size: 1rem; font-weight: 600; color: #0f172a; }
+    .cap-body { padding: 1.1rem 1.25rem; }
+    .cap-body .cap-email { font-size: 0.875rem; color: #475569; margin-bottom: 1rem; }
+    .cap-body .cap-email a { color: #12727C; font-weight: 500; text-decoration: none; }
+    .cap-body .cap-email a:hover { text-decoration: underline; }
+    .cap-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1.5rem; }
+    .cap-checklist li {
+      font-size: 0.8125rem; color: #475569;
+      display: flex; align-items: flex-start; gap: 7px; list-style: none;
+    }
+    .cap-checklist li svg { flex-shrink: 0; color: #12727C; margin-top: 2px; }
+
+    /* General application section */
+    .careers-divider { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+
+    .careers-general { display: grid; grid-template-columns: 1fr 1.4fr; gap: 2rem; align-items: start; }
+    .cg-info h2 { font-size: 1rem; font-weight: 600; color: #0f172a; }
+    .cg-info p  { margin-top: 0.375rem; font-size: 0.875rem; color: #475569; line-height: 1.6; }
+    .cg-note {
+      margin-top: 0.75rem; padding: 0.5rem 0.75rem;
+      background: #fff7ed; border: 1px solid #fed7aa; border-radius: 0.5rem;
+      font-size: 0.75rem; color: #92400e;
+      display: flex; gap: 6px; align-items: flex-start;
+    }
+    .cg-note svg { flex-shrink: 0; margin-top: 1px; }
+
+    /* Form inside general app */
+    #careersForm { display: flex; flex-direction: column; gap: 0.75rem; }
+    .cf-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .cf-field label { display: block; font-size: 0.75rem; font-weight: 500; color: #475569; margin-bottom: 0.25rem; }
+    .cf-field input,
+    .cf-field textarea {
+      width: 100%; font-size: 0.8125rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #cbd5e1; border-radius: 0.5rem;
+      background: #fff; color: #0f172a;
+    }
+    .cf-field input:focus,
+    .cf-field textarea:focus { outline: none; border-color: #12727C; box-shadow: 0 0 0 3px rgba(18,114,124,.12); }
+    .cf-field textarea { resize: vertical; min-height: 88px; }
+    .cf-file label { display: block; font-size: 0.75rem; font-weight: 500; color: #475569; margin-bottom: 0.25rem; }
+    .cf-file input[type="file"] { font-size: 0.8125rem; color: #475569; }
+    .cf-file .cf-hint { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+    .cf-actions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+    .cf-btn-primary {
+      padding: 0.5rem 1.25rem;
+      background: #12727C; color: #fff;
+      border: none; border-radius: 0.5rem;
+      font-size: 0.8125rem; font-weight: 500;
+      cursor: pointer; transition: background .15s;
+    }
+    .cf-btn-primary:hover { background: #0f5f68; }
+    .cf-btn-ghost {
+      padding: 0.5rem 1rem;
+      background: transparent; color: #64748b;
+      border: 1px solid #cbd5e1; border-radius: 0.5rem;
+      font-size: 0.8125rem; cursor: pointer; transition: border-color .15s;
+    }
+    .cf-btn-ghost:hover { border-color: #94a3b8; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .careers-stats        { grid-template-columns: 1fr 1fr; }
+      .careers-general      { grid-template-columns: 1fr; gap: 1.25rem; }
+      .cf-row               { grid-template-columns: 1fr; }
+      .cap-checklist        { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 400px) {
+      .careers-stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body class="antialiased text-gray-800 bg-gray-50 inner-brand-bg">
+<!-- bmas:header -->
+
+<main id="main" class="max-w-6xl mx-auto px-6 pt-28 pb-16">
+  <div class="bg-white p-8 rounded-lg shadow space-y-0">
+
+    <!-- Hero -->
+    <div class="careers-hero">
+      <h1>Jobs &amp; Careers</h1>
+      <p>We recruit for our clients and sometimes for BMAS. Browse open roles and apply directly through BMAS.</p>
+    </div>
+
+    <!-- Stat bar -->
+    <div class="careers-stats" id="careersStats" aria-label="Job listing summary">
+      <div class="careers-stat">
+        <div class="cs-num" id="statTotal">—</div>
+        <div class="cs-lbl">Open roles</div>
+      </div>
+      <div class="careers-stat">
+        <div class="cs-num" id="statLocations">—</div>
+        <div class="cs-lbl">Locations</div>
+      </div>
+      <div class="careers-stat">
+        <div class="cs-num" id="statNew">—</div>
+        <div class="cs-lbl">Posted this week</div>
+      </div>
+    </div>
+
+    <!-- Jobs board — site.js targets data-jobs-src & the IDs below -->
+    <div
+      id="jobsBoard"
+      data-jobs-src="https://bajbsufomaaozuqxtlxm.supabase.co/functions/v1/public-jobs"
+      data-jobs-fallback-src="assets/jobs.json"
+    >
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Open Roles</h2>
+          <p class="mt-0.5 text-xs text-slate-500">Listings are posted by BMAS. Some client names may be confidential.</p>
+        </div>
+        <div class="careers-filters">
+          <input id="jobsSearch" placeholder="Search role / location" />
+          <select id="jobsType">
+            <option value="">All types</option>
+          </select>
+          <select id="jobsLocation">
+            <option value="">All locations</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="jobsStatus">Loading roles…</p>
+      <div id="jobsList"></div>
+    </div>
+
+    <!-- How to apply -->
+    <div class="careers-apply-panel">
+      <div class="cap-header">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <h2>How to apply for listed roles</h2>
+      </div>
+      <div class="cap-body">
+        <p class="cap-email">
+          Send applications to
+          <a href="mailto:bmasrecruitment@gmail.com">bmasrecruitment@gmail.com</a>
+          — include the role title in your subject line.
+        </p>
+        <ul class="cap-checklist">
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Application letter stating position applied for
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Updated CV
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Copies of relevant qualifications
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            NRC copy or valid identification
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            At least two traceable referees
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Any relevant certificates or licences
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <hr class="careers-divider" />
+
+    <!-- General application -->
+    <div class="careers-general">
+      <div class="cg-info">
+        <h2>General Application</h2>
+        <p>Not seeing the right role? Submit a general application and we'll reach out when something matches your profile.</p>
+        <div class="cg-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Do not use this form for the client vacancies listed above.
+        </div>
+      </div>
+
+      <form id="careersForm"
+            action="https://formspree.io/f/xgvpjpbe" method="POST" enctype="multipart/form-data">
+        <input type="text" name="_gotcha" class="hidden" tabindex="-1" autocomplete="off" />
+
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="name">Full Name</label>
+            <input id="name" name="Full Name" required placeholder="Kangwa Mulenga" />
+          </div>
+          <div class="cf-field">
+            <label for="email">Email</label>
+            <input id="email" name="Email" type="email" required placeholder="kangwa@example.com" />
+          </div>
+        </div>
+
+        <div class="cf-field">
+          <label for="position">Position applying for</label>
+          <input id="position" name="Position" required placeholder="HR Manager" />
+        </div>
+
+        <div class="cf-field">
+          <label for="cover">Short cover letter</label>
+          <textarea id="cover" name="Cover Letter" maxlength="500" rows="4"
+                    placeholder="Why you'd be a good fit…"></textarea>
+        </div>
+
+        <div class="cf-file">
+          <label for="cv">Upload CV</label>
+          <input id="cv" name="CV" type="file" accept=".pdf,.doc,.docx" />
+          <p class="cf-hint">Accepted: PDF, DOC, DOCX</p>
+        </div>
+
+        <div class="cf-actions">
+          <button type="submit" class="cf-btn-primary">Submit application</button>
+          <button id="clearBtn" type="button" class="cf-btn-ghost">Clear</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</main>
+
+<!-- bmas:footer -->
+<!-- bmas:consult-modal -->
+
+<script type="module" src="assets/site.js"></script>
+
+<!-- Stat bar population — runs after site.js loads the jobs -->
+<script>
+  (function () {
+    var board = document.getElementById('jobsBoard');
+    if (!board) return;
+    var src = board.getAttribute('data-jobs-src') || 'assets/jobs.json';
+
+    fetch(src, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (payload) {
+        var jobs = Array.isArray(payload && payload.jobs) ? payload.jobs : [];
+        var locs = new Set(jobs.map(function (j) { return j.location; }).filter(Boolean));
+        var week = 7 * 24 * 3600 * 1000;
+        var now  = Date.now();
+        var newCount = jobs.filter(function (j) {
+          if (!j.postedAt) return false;
+          return (now - new Date(j.postedAt).getTime()) < week;
+        }).length;
+
+        var sTot = document.getElementById('statTotal');
+        var sLoc = document.getElementById('statLocations');
+        var sNew = document.getElementById('statNew');
+        if (sTot) sTot.textContent = jobs.length;
+        if (sLoc) sLoc.textContent = locs.size;
+        if (sNew) sNew.textContent = newCount;
+      })
+      .catch(function () {
+        /* silently leave the dashes in place if fetch fails */
+      });
+  })();
+</script>
+</body>
+</html>
