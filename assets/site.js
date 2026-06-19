@@ -444,6 +444,138 @@
     document.head.appendChild(script);
   }
 
+  function animateCount(el, target) {
+    if (!el || !Number.isFinite(target)) return;
+    const start = Number(el.textContent) || 0;
+    const duration = 700;
+    let begin = null;
+
+    const step = (timestamp) => {
+      if (!begin) begin = timestamp;
+      const progress = Math.min((timestamp - begin) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = String(Math.round(start + (target - start) * eased));
+      if (progress < 1) window.requestAnimationFrame(step);
+    };
+
+    window.requestAnimationFrame(step);
+  }
+
+  function hydrateCareersStats(jobs) {
+    const totalEl = document.getElementById('statTotal');
+    const locationsEl = document.getElementById('statLocations');
+    const newEl = document.getElementById('statNew');
+    if (!totalEl && !locationsEl && !newEl) return;
+
+    const locations = new Set(jobs.map((job) => safeText(job.location)).filter(Boolean));
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const postedThisWeek = jobs.filter((job) => {
+      if (!job.postedAt) return false;
+      const posted = new Date(job.postedAt).getTime();
+      return Number.isFinite(posted) && now - posted < weekMs;
+    }).length;
+
+    animateCount(totalEl, jobs.length);
+    animateCount(locationsEl, locations.size);
+    animateCount(newEl, postedThisWeek);
+  }
+
+  function hydrateJobsTicker(jobs) {
+    const tickerWrap = document.getElementById('jobsTicker');
+    const tickerStage = document.getElementById('tickerStage');
+    const tickerDots = document.getElementById('tickerDots');
+    if (!tickerWrap || !tickerStage || !tickerDots || jobs.length === 0) return;
+
+    let tickerIndex = 0;
+    let currentCard = null;
+
+    const setActiveDot = (index) => {
+      tickerDots.querySelectorAll('.ticker-dot').forEach((dot, dotIndex) => {
+        dot.classList.toggle('active', dotIndex === index);
+      });
+    };
+
+    const makeTickerCard = (job) => {
+      const card = document.createElement('div');
+      card.className = 'ticker-card';
+
+      const icon = document.createElement('div');
+      icon.className = 'tc-icon';
+      icon.innerHTML =
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>';
+
+      const body = document.createElement('div');
+      body.className = 'tc-body';
+
+      const role = document.createElement('div');
+      role.className = 'tc-role';
+      role.textContent = safeText(job.title) || 'Untitled role';
+
+      const meta = document.createElement('div');
+      meta.className = 'tc-meta';
+      const location = safeText(job.location);
+      if (location) {
+        const locationEl = document.createElement('span');
+        locationEl.textContent = location;
+        meta.appendChild(locationEl);
+      }
+      const type = safeText(job.workType || job.type || job.employment_type);
+      if (type) {
+        const typeEl = document.createElement('span');
+        typeEl.className = 'tc-badge';
+        typeEl.textContent = type;
+        meta.appendChild(typeEl);
+      }
+
+      body.appendChild(role);
+      if (meta.childNodes.length) body.appendChild(meta);
+      card.appendChild(icon);
+      card.appendChild(body);
+      return card;
+    };
+
+    const showTickerCard = (index) => {
+      if (currentCard) {
+        const oldCard = currentCard;
+        oldCard.classList.remove('tc-enter');
+        oldCard.classList.add('tc-exit');
+        oldCard.addEventListener('animationend', () => oldCard.remove(), { once: true });
+      }
+
+      const card = makeTickerCard(jobs[index]);
+      tickerStage.appendChild(card);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => card.classList.add('tc-enter'));
+      });
+      currentCard = card;
+      setActiveDot(index);
+    };
+
+    tickerWrap.style.display = '';
+    tickerStage.textContent = '';
+    tickerDots.textContent = '';
+    jobs.forEach((_job, index) => {
+      const dot = document.createElement('span');
+      dot.className = `ticker-dot${index === 0 ? ' active' : ''}`;
+      tickerDots.appendChild(dot);
+    });
+
+    showTickerCard(0);
+    if (tickerWrap.dataset.started === 'true') return;
+    tickerWrap.dataset.started = 'true';
+    window.setInterval(() => {
+      tickerIndex = (tickerIndex + 1) % jobs.length;
+      showTickerCard(tickerIndex);
+    }, 3200);
+  }
+
+  function hydrateCareersSummary(jobs) {
+    if (!Array.isArray(jobs) || jobs.length === 0) return;
+    hydrateCareersStats(jobs);
+    hydrateJobsTicker(jobs);
+  }
+
   function buildJobCard(job) {
     {
       const card = document.createElement('article');
@@ -784,6 +916,7 @@
     }
 
     injectJobPostingSchema(jobs);
+    hydrateCareersSummary(jobs);
 
     const types = uniqueStrings(jobs.map((j) => j.workType));
     const locations = uniqueStrings(jobs.map((j) => j.location));
