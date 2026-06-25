@@ -21,7 +21,7 @@
       description:
         'HR outsourcing, payroll, statutory compliance, HRIS, and business advisory support for SMEs and high-growth businesses in Zambia.',
       telephone: '+2609722897789',
-      email: 'bmasfrontdesk@gmail.com',
+      email: 'info@bmas.co.za',
       address: {
         '@type': 'PostalAddress',
         streetAddress: '7 Nalikwanda Road, Woodlands',
