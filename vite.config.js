@@ -2,6 +2,7 @@ import { readFileSync } from 'fs'
 import { basename, resolve } from 'path'
 
 const localApiRoutes = {
+  '/api/account-delete': './api/account-delete.js',
   '/api/compliance-lead': './api/compliance-lead.js',
   '/api/payroll': './api/payroll.js',
   '/api/quiz-config': './api/quiz-config.js',
@@ -11,6 +12,7 @@ const localApiRoutes = {
   '/api/quiz-questions': './api/quiz-questions.js',
   '/api/quiz-signin': './api/quiz-signin.js',
   '/api/quiz-submit': './api/quiz-submit.js',
+  '/api/documents': './api/documents.js',
 };
 
 async function readRequestBody(req) {
@@ -86,23 +88,26 @@ function localApiPlugin() {
   };
 }
 
-const partials = {
-  header: readFileSync(resolve(__dirname, 'partials/header.html'), 'utf8'),
-  footer: readFileSync(resolve(__dirname, 'partials/footer.html'), 'utf8'),
-  consultModal: readFileSync(resolve(__dirname, 'partials/consult-modal.html'), 'utf8'),
-};
+function readPartial(name) {
+  return readFileSync(resolve(__dirname, 'partials', name), 'utf8');
+}
 
 const pageByFile = {
   'about.html': 'about',
+  'account.html': 'documents',
   'careers.html': 'careers',
   'clients.html': 'clients',
   'compliance-check.html': 'compliance',
   'contact.html': 'contact',
+  'checkout.html': 'documents',
   'employment-law-quiz.html': 'quiz',
   'hr-metrics-calculator.html': 'hr-metrics',
   'index.html': 'home',
   'job-details.html': 'careers',
   'market.html': 'market',
+  'documents.html': 'documents',
+  'library.html': 'documents',
+  'reader.html': 'documents',
   'payroll-calculator.html': 'payroll',
   'service-cafeteria.html': 'service-cafeteria',
   'services.html': 'services',
@@ -118,6 +123,7 @@ function renderTemplate(template, values) {
 }
 
 function renderHeader(filename) {
+  const header = readPartial('header.html');
   const activePage = pageByFile[basename(filename)] || 'home';
   const activeNav = 'text-slate-900 font-medium';
   const inactiveNav = 'hover:text-slate-900';
@@ -127,9 +133,9 @@ function renderHeader(filename) {
   const inactiveTool = 'rounded px-3 py-2 hover:bg-slate-50';
   const activeMobileTool = 'block py-2 pl-3 font-medium text-slate-900';
   const inactiveMobileTool = 'block py-2 pl-3';
-  const isToolPage = ['compliance', 'payroll', 'quiz', 'service-cafeteria', 'hr-metrics'].includes(activePage);
+  const isToolPage = ['compliance', 'payroll', 'quiz', 'service-cafeteria', 'hr-metrics', 'documents'].includes(activePage);
 
-  return renderTemplate(partials.header, {
+  return renderTemplate(header, {
     headerClass:
       activePage === 'home'
         ? 'fixed w-full z-30 bg-white/70 backdrop-blur-md border-b border-white/40'
@@ -144,6 +150,7 @@ function renderHeader(filename) {
     navContactClass: classFor(activePage, 'contact', activeNav, inactiveNav),
     navPayrollMenuClass: classFor(activePage, 'payroll', activeTool, inactiveTool),
     navHrMetricsMenuClass: classFor(activePage, 'hr-metrics', activeTool, inactiveTool),
+    navDocumentsMenuClass: classFor(activePage, 'documents', activeTool, inactiveTool),
     navComplianceMenuClass: classFor(activePage, 'compliance', activeTool, inactiveTool),
     navQuizMenuClass: classFor(activePage, 'quiz', activeTool, inactiveTool),
     navCafeteriaMenuClass: classFor(activePage, 'service-cafeteria', activeTool, inactiveTool),
@@ -156,6 +163,7 @@ function renderHeader(filename) {
     mobileContactClass: classFor(activePage, 'contact', activeMobile, inactiveMobile),
     mobilePayrollClass: classFor(activePage, 'payroll', activeMobileTool, inactiveMobileTool),
     mobileHrMetricsClass: classFor(activePage, 'hr-metrics', activeMobileTool, inactiveMobileTool),
+    mobileDocumentsClass: classFor(activePage, 'documents', activeMobileTool, inactiveMobileTool),
     mobileComplianceClass: classFor(activePage, 'compliance', activeMobileTool, inactiveMobileTool),
     mobileQuizClass: classFor(activePage, 'quiz', activeMobileTool, inactiveMobileTool),
     mobileCafeteriaClass: classFor(activePage, 'service-cafeteria', activeMobileTool, inactiveMobileTool),
@@ -170,8 +178,8 @@ function sharedPartialsPlugin() {
       handler(html, ctx) {
         return html
           .replace('<!-- bmas:header -->', renderHeader(ctx.filename || 'index.html'))
-          .replace('<!-- bmas:footer -->', partials.footer)
-          .replace('<!-- bmas:consult-modal -->', partials.consultModal);
+          .replace('<!-- bmas:footer -->', readPartial('footer.html'))
+          .replace('<!-- bmas:consult-modal -->', readPartial('consult-modal.html'));
       },
     },
   };
@@ -188,10 +196,12 @@ export default {
         main: resolve(__dirname, 'index.html'),
         quiz: resolve(__dirname, 'employment-law-quiz.html'),
         about: resolve(__dirname, 'about.html'),
+        account: resolve(__dirname, 'account.html'),
         careers: resolve(__dirname, 'careers.html'),
         'job-details': resolve(__dirname, 'job-details.html'),
         clients: resolve(__dirname, 'clients.html'),
         contact: resolve(__dirname, 'contact.html'),
+        checkout: resolve(__dirname, 'checkout.html'),
         market: resolve(__dirname, 'market.html'),
         services: resolve(__dirname, 'services.html'),
         'why-us': resolve(__dirname, 'why-us.html'),
@@ -199,6 +209,9 @@ export default {
         'payroll-calculator': resolve(__dirname, 'payroll-calculator.html'),
         'hr-metrics-calculator': resolve(__dirname, 'hr-metrics-calculator.html'),
         'service-cafeteria': resolve(__dirname, 'service-cafeteria.html'),
+        documents: resolve(__dirname, 'documents.html'),
+        library: resolve(__dirname, 'library.html'),
+        reader: resolve(__dirname, 'reader.html'),
       }
     }
   }

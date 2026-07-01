@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BMAS Reader</title>
+  <meta name="description" content="Read purchased BMAS resources in a protected online reader." />
+  <link rel="canonical" href="https://www.bmas.co.za/reader">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#12727C" />
+  <link rel="icon" type="image/png" href="bmas.png" />
+  <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+
+<body class="antialiased text-gray-800 bg-slate-950" data-page="documents">
+<main id="main" class="reader-shell">
+  <header class="reader-toolbar">
+    <a href="/library" class="reader-toolbar-link">Library</a>
+    <div>
+      <p class="text-xs uppercase tracking-[0.18em] text-slate-400">BMAS Reader</p>
+      <h1 id="readerTitle" class="text-base font-bold text-white">Preparing resource</h1>
+    </div>
+    <div id="readerAccount" class="text-right text-xs text-slate-400"></div>
+  </header>
+
+  <section class="reader-stage">
+    <div class="reader-page">
+      <div class="reader-watermark" id="readerWatermark">Licensed BMAS resource</div>
+      <div id="readerStatus" class="reader-placeholder">
+        Loading document...
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="assets/reader.js"></script>
+</body>
+</html>

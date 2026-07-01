@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BMAS Account - Sign in to Your Library</title>
+  <meta name="description" content="Sign in or create a BMAS Library account to access purchased Resource Store documents." />
+  <link rel="canonical" href="https://www.bmas.co.za/account">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#12727C" />
+  <link rel="icon" type="image/png" href="bmas.png" />
+  <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+
+<body class="antialiased text-gray-800 bg-gray-50 inner-brand-bg" data-page="documents">
+<!-- bmas:header -->
+
+<main id="main" class="account-shell max-w-6xl mx-auto px-6 pt-24 pb-12">
+  <section class="account-layout">
+    <section class="account-card" aria-labelledby="accountTitle">
+      <div id="accountSignedIn" class="hidden">
+        <div class="account-profile-header">
+          <div class="account-avatar" id="accountAvatar" aria-hidden="true">B</div>
+          <div>
+            <h2 id="accountSignedInTitle">My account</h2>
+            <p id="accountSignedInText" class="mt-1 text-sm text-slate-600"></p>
+          </div>
+        </div>
+
+        <dl class="account-details">
+          <div>
+            <dt>Email</dt>
+            <dd id="accountEmailText"></dd>
+          </div>
+          <div>
+            <dt>Account status</dt>
+            <dd id="accountStatusText"></dd>
+          </div>
+        </dl>
+
+        <form id="accountSettingsForm" class="account-settings-form">
+          <h3>Profile</h3>
+          <label class="block text-sm text-slate-700">
+            <span class="font-medium">Full name</span>
+            <input id="accountSettingsName" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="name" />
+          </label>
+          <button id="accountSettingsSubmit" type="submit" class="documents-primary-btn">Save settings</button>
+          <p id="accountSettingsStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
+        </form>
+
+        <form id="accountPasswordForm" class="account-settings-form">
+          <h3>Password</h3>
+          <p id="accountPasswordHelp" class="mb-3 text-sm leading-6 text-slate-600">
+            We will send a secure reset link to your email before any password change.
+          </p>
+          <div id="accountRecoveryFields" class="hidden">
+            <label class="block text-sm text-slate-700">
+              <span class="font-medium">New password</span>
+              <input id="accountNewPassword" type="password" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="new-password" minlength="8" />
+            </label>
+            <label class="mt-3 block text-sm text-slate-700">
+              <span class="font-medium">Confirm new password</span>
+              <input id="accountConfirmPassword" type="password" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="new-password" minlength="8" />
+            </label>
+          </div>
+          <button id="accountPasswordSubmit" type="submit" class="documents-primary-btn">Send password reset email</button>
+          <p id="accountPasswordStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
+        </form>
+
+        <section class="account-danger-zone">
+          <h3>Delete account</h3>
+          <p>Deleting your account removes sign-in access. Purchase records may be retained by BMAS for payment and compliance records.</p>
+          <label class="mt-3 block text-sm text-slate-700">
+            <span class="font-medium">Current password</span>
+            <input id="accountDeletePassword" type="password" class="mt-1 w-full rounded border border-red-200 px-3 py-2" autocomplete="current-password" />
+          </label>
+          <label class="mt-3 block text-sm text-slate-700">
+            <span class="font-medium">Type DELETE to confirm</span>
+            <input id="accountDeleteConfirm" class="mt-1 w-full rounded border border-red-200 px-3 py-2" autocomplete="off" />
+          </label>
+          <button id="accountDeleteSubmit" type="button" class="account-danger-btn">Delete account</button>
+          <p id="accountDeleteStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
+        </section>
+
+        <div class="account-actions">
+          <a id="accountContinue" href="/library" class="documents-primary-link">Open library</a>
+          <a href="/documents" class="documents-secondary-link">Resource Store</a>
+          <button id="accountSignOut" type="button" class="documents-secondary-link">Log out</button>
+        </div>
+      </div>
+
+      <div id="accountAuthPanel">
+        <h2 id="accountTitle">Sign in</h2>
+        <p class="mt-2 text-sm text-slate-600">Enter your email and password to continue.</p>
+        <form id="accountAuthForm" class="mt-5 space-y-4">
+          <label id="accountNameWrap" class="hidden block text-sm text-slate-700">
+            <span class="font-medium">Full name</span>
+            <input id="accountName" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="name" />
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="font-medium">Email address</span>
+            <input id="accountEmail" type="email" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="email" required />
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="font-medium">Password</span>
+            <input id="accountPassword" type="password" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="current-password" required />
+          </label>
+          <button id="accountSubmit" type="submit" class="documents-primary-btn">Sign in</button>
+          <button id="accountForgotPassword" type="button" class="w-full text-sm font-semibold text-teal-700">
+            Forgot password?
+          </button>
+          <button id="accountToggle" type="button" class="w-full rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">
+            New here? Create an account
+          </button>
+          <p id="accountStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </section>
+</main>
+
+<!-- bmas:footer -->
+<!-- bmas:consult-modal -->
+
+<script type="module" src="assets/site.js"></script>
+<script type="module" src="assets/account.js"></script>
+</body>
+</html>
