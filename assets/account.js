@@ -119,6 +119,20 @@ function getAccountRedirectUrl() {
   return url.toString();
 }
 
+async function createConfirmedAccount({ email, password, fullName }) {
+  const res = await fetch('/api/account-signup', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password, fullName }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || !payload.ok) {
+    throw new Error(payload.error || 'Unable to create account right now.');
+  }
+
+  return state.supabase.auth.signInWithPassword({ email, password });
+}
+
 function updatePasswordUi() {
   els.recoveryFields.classList.toggle('hidden', !isPasswordRecovery);
   els.newPassword.required = isPasswordRecovery;
@@ -140,7 +154,7 @@ function updateUi() {
   els.avatar.textContent = getInitials(displayName);
   els.signedInText.textContent = email ? displayName : '';
   els.emailText.textContent = email;
-  els.statusText.textContent = user?.email_confirmed_at ? 'Email confirmed' : 'Email confirmation pending';
+  els.statusText.textContent = email ? 'Account active' : '';
   if (document.activeElement !== els.settingsName) {
     els.settingsName.value = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
   }
@@ -174,19 +188,19 @@ async function handleAuth(event) {
 
   setStatus(authMode === 'signup' ? 'Creating account...' : 'Signing in...');
 
-  const result =
-    authMode === 'signup'
-      ? await state.supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
-      : await state.supabase.auth.signInWithPassword({ email, password });
-
-  if (result.error) {
-    setStatus(result.error.message, 'error');
+  let result;
+  try {
+    result =
+      authMode === 'signup'
+        ? await createConfirmedAccount({ email, password, fullName })
+        : await state.supabase.auth.signInWithPassword({ email, password });
+  } catch (error) {
+    setStatus(error.message || 'Unable to create account right now.', 'error');
     return;
   }
 
-  if (authMode === 'signup' && !result.data.session) {
-    setStatus('Account created. Check your email if confirmation is required, then sign in.', 'success');
-    setAuthMode('signin');
+  if (result.error) {
+    setStatus(result.error.message, 'error');
     return;
   }
 

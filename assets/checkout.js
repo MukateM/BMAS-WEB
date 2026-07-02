@@ -70,6 +70,20 @@ function setAuthMode(nextMode) {
   setStatus(els.authStatus, '');
 }
 
+async function createConfirmedAccount({ email, password, fullName }) {
+  const res = await fetch('/api/account-signup', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password, fullName }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || !payload.ok) {
+    throw new Error(payload.error || 'Unable to create account right now.');
+  }
+
+  return state.supabase.auth.signInWithPassword({ email, password });
+}
+
 function renderProduct() {
   if (!state.product) {
     els.resourceCard.innerHTML = `
@@ -200,19 +214,19 @@ async function handleAuth(event) {
   const fullName = els.authName.value.trim();
   setStatus(els.authStatus, authMode === 'signup' ? 'Creating account...' : 'Signing in...');
 
-  const result =
-    authMode === 'signup'
-      ? await state.supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
-      : await state.supabase.auth.signInWithPassword({ email, password });
-
-  if (result.error) {
-    setStatus(els.authStatus, result.error.message, 'error');
+  let result;
+  try {
+    result =
+      authMode === 'signup'
+        ? await createConfirmedAccount({ email, password, fullName })
+        : await state.supabase.auth.signInWithPassword({ email, password });
+  } catch (error) {
+    setStatus(els.authStatus, error.message || 'Unable to create account right now.', 'error');
     return;
   }
 
-  if (authMode === 'signup' && !result.data.session) {
-    setStatus(els.authStatus, 'Account created. Check your email if confirmation is required.', 'success');
-    setAuthMode('signin');
+  if (result.error) {
+    setStatus(els.authStatus, result.error.message, 'error');
     return;
   }
 
