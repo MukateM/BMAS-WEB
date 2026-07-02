@@ -807,6 +807,10 @@ body[data-page="service-cafeteria"] {
   overscroll-behavior: contain;
 }
 
+.reader-page--loading {
+  visibility: hidden;
+}
+
 .reader-watermark {
   position: absolute;
   inset: auto 1rem 1rem auto;

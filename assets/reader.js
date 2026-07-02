@@ -11,6 +11,18 @@ const watermarkEl = document.getElementById('readerWatermark');
 const pageEl = document.querySelector('.reader-page');
 let renderRunId = 0;
 
+function waitForPaint() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resolve);
+    });
+  });
+}
+
+function showReaderPage() {
+  pageEl.classList.remove('reader-page--loading');
+}
+
 function installReaderGuards() {
   document.addEventListener('contextmenu', (event) => {
     if (event.target.closest('.reader-page')) event.preventDefault();
@@ -27,6 +39,7 @@ function installReaderGuards() {
 
 function clearReader() {
   renderRunId += 1;
+  pageEl.classList.add('reader-page--loading');
   pageEl.querySelectorAll('.reader-frame, .reader-image, .reader-download, .reader-pages').forEach((node) => node.remove());
   statusEl.hidden = false;
 }
@@ -42,7 +55,7 @@ function setLoadingStatus(message = 'Loading document...') {
 async function renderPdfAsset(asset, order) {
   const currentRunId = renderRunId;
   let firstPageShown = false;
-  setLoadingStatus('Preparing protected reader...');
+  setLoadingStatus('Preparing reader...');
 
   const response = await fetch(asset.signed_url, { cache: 'no-store' });
   if (!response.ok) throw new Error('The document could not be loaded. Please refresh the reader.');
@@ -98,6 +111,8 @@ async function renderPdfAsset(asset, order) {
     pages.appendChild(pageWrap);
     if (!firstPageShown) {
       firstPageShown = true;
+      showReaderPage();
+      await waitForPaint();
       statusEl.hidden = true;
     }
   }
@@ -122,6 +137,7 @@ async function showAsset(order) {
     image.src = asset.signed_url;
     image.alt = asset.title || order.product_title;
     image.addEventListener('load', () => {
+      showReaderPage();
       statusEl.hidden = true;
     }, { once: true });
     image.addEventListener('error', () => {
@@ -147,6 +163,7 @@ async function showAsset(order) {
   link.rel = 'noopener';
   link.textContent = 'Open document';
   pageEl.appendChild(link);
+  showReaderPage();
 }
 
 async function main() {
