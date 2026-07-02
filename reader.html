@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#12727C" />
   <link rel="icon" type="image/png" href="bmas.png" />
   <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
-  <link rel="stylesheet" href="assets/site.css" />
+  <link rel="stylesheet" href="assets/site.css?v=20260702-reader-loader" />
 </head>
 
 <body class="antialiased text-gray-800 bg-slate-950" data-page="documents">
@@ -25,15 +25,15 @@
   </header>
 
   <section class="reader-stage">
+    <div id="readerStatus" class="reader-placeholder">
+      Loading document...
+    </div>
     <div class="reader-page">
       <div class="reader-watermark" id="readerWatermark">Licensed BMAS resource</div>
-      <div id="readerStatus" class="reader-placeholder">
-        Loading document...
-      </div>
     </div>
   </section>
 </main>
 
-<script type="module" src="assets/reader.js"></script>
+<script type="module" src="assets/reader.js?v=20260702-reader-loader"></script>
 </body>
 </html>

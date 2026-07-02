@@ -41,6 +41,7 @@ function setLoadingStatus(message = 'Loading document...') {
 
 async function renderPdfAsset(asset, order) {
   const currentRunId = renderRunId;
+  let firstPageShown = false;
   setLoadingStatus('Preparing protected reader...');
 
   const response = await fetch(asset.signed_url, { cache: 'no-store' });
@@ -95,6 +96,10 @@ async function renderPdfAsset(asset, order) {
 
     if (!pages.isConnected) pageEl.appendChild(pages);
     pages.appendChild(pageWrap);
+    if (!firstPageShown) {
+      firstPageShown = true;
+      statusEl.hidden = true;
+    }
   }
 
   statusEl.hidden = true;
