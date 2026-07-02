@@ -24,19 +24,23 @@ function showReaderPage() {
 }
 
 function installReaderGuards() {
-  document.addEventListener('contextmenu', (event) => {
-    if (!event.target.closest('.reader-stage')) return;
-    event.preventDefault();
-    event.stopPropagation();
-  }, true);
+  const guardedEvents = ['contextmenu', 'dragstart', 'selectstart', 'copy', 'cut'];
+  guardedEvents.forEach((eventName) => {
+    document.addEventListener(eventName, (event) => {
+      if (!event.target.closest('.reader-stage')) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+  });
 
   document.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
     const modifier = event.ctrlKey || event.metaKey;
-    if (modifier && ['s', 'p'].includes(key)) {
+    if (modifier && ['a', 'c', 'p', 's', 'x'].includes(key)) {
       event.preventDefault();
+      event.stopPropagation();
     }
-  });
+  }, true);
 }
 
 function clearReader() {
@@ -52,6 +56,26 @@ function setLoadingStatus(message = 'Loading document...') {
     <span>${message}</span>
   `;
   statusEl.hidden = false;
+}
+
+function watermarkText(order) {
+  const email = order.user?.email || accountEl.textContent || 'BMAS reader';
+  const reference = order.reference ? ` | ${order.reference}` : '';
+  return `Licensed to ${email}${reference}`;
+}
+
+function createWatermarkGrid(label) {
+  const grid = document.createElement('div');
+  grid.className = 'reader-watermark-grid';
+  grid.setAttribute('aria-hidden', 'true');
+
+  for (let index = 0; index < 24; index += 1) {
+    const mark = document.createElement('span');
+    mark.textContent = label;
+    grid.appendChild(mark);
+  }
+
+  return grid;
 }
 
 async function renderPdfAsset(asset, order) {
@@ -99,9 +123,10 @@ async function renderPdfAsset(asset, order) {
 
     const pageWatermark = document.createElement('div');
     pageWatermark.className = 'reader-page-watermark';
-    pageWatermark.textContent = `Licensed to ${order.user?.email || accountEl.textContent || 'BMAS reader'}`;
+    const label = watermarkText(order);
+    pageWatermark.textContent = label;
 
-    pageWrap.append(canvas, pageWatermark);
+    pageWrap.append(canvas, createWatermarkGrid(label), pageWatermark);
 
     await pdfPage.render({
       canvasContext: context,
@@ -134,10 +159,13 @@ async function showAsset(order) {
   setLoadingStatus();
 
   if (asset.type === 'image') {
+    const imageWrap = document.createElement('div');
+    imageWrap.className = 'reader-canvas-page reader-image-page';
     const image = document.createElement('img');
     image.className = 'reader-image';
     image.src = asset.signed_url;
     image.alt = asset.title || order.product_title;
+    const label = watermarkText(order);
     image.addEventListener('load', () => {
       showReaderPage();
       statusEl.hidden = true;
@@ -145,7 +173,8 @@ async function showAsset(order) {
     image.addEventListener('error', () => {
       statusEl.textContent = 'The document could not be loaded. Please refresh the reader.';
     }, { once: true });
-    pageEl.appendChild(image);
+    imageWrap.append(image, createWatermarkGrid(label));
+    pageEl.appendChild(imageWrap);
     return;
   }
 
