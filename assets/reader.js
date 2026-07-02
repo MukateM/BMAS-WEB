@@ -25,8 +25,10 @@ function showReaderPage() {
 
 function installReaderGuards() {
   document.addEventListener('contextmenu', (event) => {
-    if (event.target.closest('.reader-page')) event.preventDefault();
-  });
+    if (!event.target.closest('.reader-stage')) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
 
   document.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
