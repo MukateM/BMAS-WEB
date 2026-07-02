@@ -19,7 +19,6 @@ function normalizePhone(value: unknown) {
 
 function normalizeStatus(payload: Record<string, unknown>) {
   const raw = String(payload.status || '').toLowerCase();
-  if (['successful', 'success', 'paid', 'completed'].includes(raw)) return 'paid';
   if (['failed', 'cancelled', 'canceled', 'expired', 'declined'].includes(raw)) return 'failed';
   return 'pending';
 }
@@ -43,9 +42,11 @@ Deno.serve(async (req) => {
   const lipilaApiKey = env('LIPILA_API_KEY');
   const lipilaApiBaseUrl = env('LIPILA_API_BASE_URL', 'https://api.lipila.dev').replace(/\/$/, '');
   const siteUrl = env('SITE_URL', 'http://localhost:5173').replace(/\/$/, '');
-  const paymentCallbackUrl = env('PAYMENT_CALLBACK_URL', `${supabaseUrl}/functions/v1/payment-callback`);
+  const callbackToken = env('PAYMENT_CALLBACK_TOKEN');
+  const paymentCallbackUrl = new URL(env('PAYMENT_CALLBACK_URL', `${supabaseUrl}/functions/v1/payment-callback`));
+  if (callbackToken) paymentCallbackUrl.searchParams.set('token', callbackToken);
 
-  if (!supabaseUrl || !serviceRoleKey || !lipilaApiKey) {
+  if (!supabaseUrl || !serviceRoleKey || !lipilaApiKey || !callbackToken) {
     return jsonResponse({ ok: false, error: 'Payment service is not configured.' }, 503);
   }
 
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
   }
 
   const collectionPayload = {
-    callbackUrl: paymentCallbackUrl,
+    callbackUrl: paymentCallbackUrl.toString(),
     referenceId: reference,
     amount,
     narration: `${product.title} - ${customerName}`,

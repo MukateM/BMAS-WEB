@@ -798,10 +798,12 @@ body[data-page="service-cafeteria"] {
   position: relative;
   width: min(100%, 52rem);
   min-height: min(72vh, 48rem);
+  max-height: calc(100vh - 8rem);
   border-radius: 0.25rem;
   background: #fff;
   box-shadow: 0 30px 80px rgba(0,0,0,0.36);
-  overflow: hidden;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .reader-watermark {
@@ -853,6 +855,46 @@ body[data-page="service-cafeteria"] {
   min-height: inherit;
   border: 0;
   background: #fff;
+}
+
+.reader-pages {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  min-height: inherit;
+  background: #dbe4ea;
+  padding: 1rem;
+  user-select: none;
+}
+
+.reader-canvas-page {
+  position: relative;
+  max-width: 100%;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15,23,42,0.16);
+}
+
+.reader-canvas-page canvas {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  pointer-events: none;
+}
+
+.reader-page-watermark {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.85rem;
+  max-width: calc(100% - 2rem);
+  color: rgba(15,23,42,0.22);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-align: right;
+  text-transform: uppercase;
+  pointer-events: none;
+  overflow-wrap: anywhere;
 }
 
 .reader-image {

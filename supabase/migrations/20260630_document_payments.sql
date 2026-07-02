@@ -100,10 +100,6 @@ create policy "document_assets_service_role_all"
   with check (auth.role() = 'service_role');
 
 drop policy if exists "Authenticated users can read active document assets" on public.document_assets;
-create policy "Authenticated users can read active document assets"
-  on public.document_assets
-  for select
-  using (is_active = true and auth.role() = 'authenticated');
 
 create or replace function public.set_document_orders_updated_at()
 returns trigger

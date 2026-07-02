@@ -16,6 +16,8 @@ function isImageAsset(asset: Record<string, unknown>) {
   return /\.(png|jpe?g|webp|gif)$/i.test(path);
 }
 
+const SIGNED_ASSET_TTL_SECONDS = 60 * 2;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return optionsResponse();
   if (req.method !== 'GET') return jsonResponse({ ok: false, error: 'Method not allowed' }, 405);
@@ -79,7 +81,7 @@ Deno.serve(async (req) => {
 
     const { data: signedData, error: signedError } = await supabase.storage
       .from(bucket)
-      .createSignedUrl(path, 60 * 15);
+      .createSignedUrl(path, SIGNED_ASSET_TTL_SECONDS);
 
     signedAssetByProductId.set(productId, signedError || !signedData?.signedUrl
       ? null
@@ -89,7 +91,7 @@ Deno.serve(async (req) => {
           path,
           page_count: asset.page_count,
           signed_url: signedData.signedUrl,
-          expires_in: 60 * 15,
+          expires_in: SIGNED_ASSET_TTL_SECONDS,
           type: isPdfAsset(asset) ? 'pdf' : isImageAsset(asset) ? 'image' : 'file',
         });
   }
