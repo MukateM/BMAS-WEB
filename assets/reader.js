@@ -59,7 +59,6 @@ async function renderPdfAsset(asset, order) {
   const pages = document.createElement('div');
   pages.className = 'reader-pages';
   pages.setAttribute('aria-label', asset.title || order.product_title || 'BMAS protected PDF');
-  pageEl.appendChild(pages);
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     setLoadingStatus(`Rendering page ${pageNumber} of ${pdf.numPages}...`);
@@ -87,13 +86,15 @@ async function renderPdfAsset(asset, order) {
     pageWatermark.textContent = `Licensed to ${order.user?.email || accountEl.textContent || 'BMAS reader'}`;
 
     pageWrap.append(canvas, pageWatermark);
-    pages.appendChild(pageWrap);
 
     await pdfPage.render({
       canvasContext: context,
       transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0],
       viewport,
     }).promise;
+
+    if (!pages.isConnected) pageEl.appendChild(pages);
+    pages.appendChild(pageWrap);
   }
 
   statusEl.hidden = true;
