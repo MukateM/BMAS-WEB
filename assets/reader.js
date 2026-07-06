@@ -7,6 +7,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 const titleEl = document.getElementById('readerTitle');
 const accountEl = document.getElementById('readerAccount');
 const statusEl = document.getElementById('readerStatus');
+const watermarkEl = document.getElementById('readerWatermark');
 const pageEl = document.querySelector('.reader-page');
 let renderRunId = 0;
 
@@ -57,6 +58,26 @@ function setLoadingStatus(message = 'Loading document...') {
   statusEl.hidden = false;
 }
 
+function watermarkText(order) {
+  const email = order.user?.email || accountEl.textContent || 'BMAS reader';
+  const reference = order.reference ? ` | ${order.reference}` : '';
+  return `Licensed to ${email}${reference}`;
+}
+
+function createWatermarkGrid(label) {
+  const grid = document.createElement('div');
+  grid.className = 'reader-watermark-grid';
+  grid.setAttribute('aria-hidden', 'true');
+
+  for (let index = 0; index < 24; index += 1) {
+    const mark = document.createElement('span');
+    mark.textContent = label;
+    grid.appendChild(mark);
+  }
+
+  return grid;
+}
+
 async function renderPdfAsset(asset, order) {
   const currentRunId = renderRunId;
   let firstPageShown = false;
@@ -100,7 +121,12 @@ async function renderPdfAsset(asset, order) {
     canvas.style.height = `${Math.floor(viewport.height)}px`;
     canvas.setAttribute('aria-label', `Page ${pageNumber}`);
 
-    pageWrap.appendChild(canvas);
+    const pageWatermark = document.createElement('div');
+    pageWatermark.className = 'reader-page-watermark';
+    const label = watermarkText(order);
+    pageWatermark.textContent = label;
+
+    pageWrap.append(canvas, createWatermarkGrid(label), pageWatermark);
 
     await pdfPage.render({
       canvasContext: context,
@@ -121,70 +147,16 @@ async function renderPdfAsset(asset, order) {
   statusEl.hidden = true;
 }
 
-function imageLoadPromise(image) {
-  if (image.complete && image.naturalWidth > 0) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    image.addEventListener('load', resolve, { once: true });
-    image.addEventListener('error', reject, { once: true });
-  });
-}
-
-async function renderImagePagesAsset(asset, order) {
-  const pages = Array.isArray(asset.pages) ? asset.pages : [];
-  if (!pages.length) {
-    statusEl.textContent = 'The document could not be loaded. Please refresh the reader.';
-    return;
-  }
-
-  const pagesWrap = document.createElement('div');
-  pagesWrap.className = 'reader-pages';
-  pagesWrap.setAttribute('aria-label', asset.title || order.product_title || 'BMAS protected image document');
-
-  pages.forEach((page, index) => {
-    const pageNumber = Number(page.page_number) || index + 1;
-    const imageWrap = document.createElement('div');
-    imageWrap.className = 'reader-canvas-page reader-image-page';
-
-    const image = document.createElement('img');
-    image.className = 'reader-image';
-    image.src = page.signed_url;
-    image.alt = `${asset.title || order.product_title || 'Document'} page ${pageNumber}`;
-    image.decoding = 'async';
-    image.loading = index < 2 ? 'eager' : 'lazy';
-    image.draggable = false;
-
-    imageWrap.appendChild(image);
-    pagesWrap.appendChild(imageWrap);
-  });
-
-  pageEl.appendChild(pagesWrap);
-  setLoadingStatus(`Loading page 1 of ${pages.length}...`);
-
-  try {
-    await imageLoadPromise(pagesWrap.querySelector('.reader-image'));
-    showReaderPage();
-    await waitForPaint();
-    statusEl.hidden = true;
-  } catch {
-    statusEl.textContent = 'The document could not be loaded. Please refresh the reader.';
-  }
-}
-
 async function showAsset(order) {
   const asset = order.asset;
   clearReader();
 
-  if (!asset?.signed_url && !(Array.isArray(asset?.pages) && asset.pages.length)) {
+  if (!asset?.signed_url) {
     statusEl.textContent = 'Your payment is confirmed. We are preparing your document. Please refresh in a moment.';
     return;
   }
 
   setLoadingStatus();
-
-  if (asset.type === 'image_pages') {
-    await renderImagePagesAsset(asset, order);
-    return;
-  }
 
   if (asset.type === 'image') {
     const imageWrap = document.createElement('div');
@@ -193,6 +165,7 @@ async function showAsset(order) {
     image.className = 'reader-image';
     image.src = asset.signed_url;
     image.alt = asset.title || order.product_title;
+    const label = watermarkText(order);
     image.addEventListener('load', () => {
       showReaderPage();
       statusEl.hidden = true;
@@ -200,7 +173,7 @@ async function showAsset(order) {
     image.addEventListener('error', () => {
       statusEl.textContent = 'The document could not be loaded. Please refresh the reader.';
     }, { once: true });
-    imageWrap.appendChild(image);
+    imageWrap.append(image, createWatermarkGrid(label));
     pageEl.appendChild(imageWrap);
     return;
   }
@@ -245,6 +218,7 @@ async function main() {
   }
 
   accountEl.textContent = session.user.email || '';
+  watermarkEl.textContent = `Licensed to ${session.user.email || 'BMAS reader'}`;
 
   const { data, error } = await supabase.functions.invoke('resource-library', { method: 'GET' });
   if (error || !data?.ok) {

@@ -183,14 +183,7 @@ Deno.serve(async (req) => {
     .limit(1);
 
   if (reference && providerReference) {
-    orderQuery = orderQuery.or(
-      [
-        `reference.eq.${reference}`,
-        `reference.eq.${providerReference}`,
-        `provider_reference.eq.${reference}`,
-        `provider_reference.eq.${providerReference}`,
-      ].join(','),
-    );
+    orderQuery = orderQuery.or(`reference.eq.${reference},provider_reference.eq.${providerReference}`);
   } else if (reference) {
     orderQuery = orderQuery.eq('reference', reference);
   } else {
