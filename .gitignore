@@ -19,3 +19,7 @@ mobile-audit*
 mobile-compliance.png
 mobile-home*.png
 mobile-quiz.png
+
+# Local/generated resource documents
+assets/resources/*.pdf
+assets/resources/*/pages/
