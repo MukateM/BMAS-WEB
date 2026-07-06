@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BMAS Resource Store - HR Surveys, Toolkits &amp; Templates</title>
+  <meta name="description" content="Buy practical BMAS HR surveys, compliance toolkits, payroll templates, and business-ready advisory resources." />
+  <link rel="canonical" href="https://www.bmas.co.za/documents">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="theme-color" content="#12727C" />
+
+  <meta property="og:title" content="BMAS Resource Store">
+  <meta property="og:description" content="Practical HR surveys, compliance tools, payroll templates, and advisory resources prepared by BMAS.">
+  <meta property="og:site_name" content="Business Momentum Advisory Services (BMAS)">
+  <meta property="og:image" content="https://www.bmas.co.za/bmas.png">
+  <meta property="og:image:alt" content="BMAS Resource Store">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bmas.co.za/documents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BMAS Resource Store">
+  <meta name="twitter:description" content="Practical HR surveys, compliance tools, payroll templates, and advisory resources prepared by BMAS.">
+  <meta name="twitter:image" content="https://www.bmas.co.za/bmas.png">
+  <meta name="twitter:image:alt" content="BMAS Resource Store">
+
+  <link rel="icon" type="image/png" href="bmas.png" />
+  <link rel="stylesheet" href="assets/tailwind.css?v=20260501-1" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+
+<body class="antialiased text-gray-800 bg-gray-50 inner-brand-bg" data-page="documents">
+<!-- bmas:header -->
+
+<main id="main" class="documents-shell">
+  <section class="documents-hero">
+    <div class="documents-hero-inner max-w-6xl mx-auto px-6">
+      <div class="documents-hero-copy">
+        <p>
+          Browse BMAS surveys, compliance tools, payroll templates, and advisory resources prepared for employers that need usable documents, not generic downloads.
+        </p>
+        <div class="documents-hero-actions">
+          <a href="#resourceCatalog" class="documents-primary-link">Browse resources</a>
+          <a href="/account?next=/library" class="documents-secondary-link">Sign in / create account</a>
+          <a href="/library" class="documents-secondary-link">Open my library</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="resourceCatalog" class="max-w-6xl mx-auto px-6 py-8">
+    <div id="documentsReturnNotice" class="hidden mb-6 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"></div>
+
+    <div class="documents-catalog-shell">
+      <section>
+        <div class="documents-catalog-header">
+          <div>
+            <p class="documents-section-label">Catalog</p>
+            <h2>Choose a resource</h2>
+          </div>
+          <label class="documents-filter">
+            <span>Category</span>
+            <select id="documentsCategory">
+              <option value="">All categories</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="documentsStatus" class="documents-status">Loading resources...</div>
+        <div id="documentsList" class="documents-list"></div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<!-- bmas:footer -->
+<!-- bmas:consult-modal -->
+
+<script type="module" src="assets/site.js"></script>
+<script type="module" src="assets/documents.js"></script>
+</body>
+</html>
