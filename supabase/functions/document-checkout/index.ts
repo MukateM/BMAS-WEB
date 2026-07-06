@@ -33,16 +33,6 @@ function mapProduct(row: Record<string, unknown>) {
   };
 }
 
-function providerDiagnostic(response: Response, payload: Record<string, unknown>, endpoint: string) {
-  const url = new URL(endpoint);
-  return {
-    status: response.status,
-    status_text: response.statusText,
-    endpoint: `${url.origin}${url.pathname}`,
-    payload,
-  };
-}
-
 async function readProviderPayload(response: Response) {
   const text = await response.text().catch(() => '');
   if (!text) return {};
@@ -143,10 +133,9 @@ Deno.serve(async (req) => {
     email: customerEmail,
   };
 
-  const lipilaEndpoint = `${lipilaApiBaseUrl}/api/v1/collections/mobile-money`;
   let lipilaResponse: Response;
   try {
-    lipilaResponse = await fetch(lipilaEndpoint, {
+    lipilaResponse = await fetch(`${lipilaApiBaseUrl}/api/v1/collections/mobile-money`, {
       method: 'POST',
       headers: {
         accept: 'application/json',
@@ -161,7 +150,6 @@ Deno.serve(async (req) => {
       .from('document_orders')
       .update({
         provider_payload: {
-          endpoint: lipilaEndpoint,
           error: error instanceof Error ? error.message : 'Lipila request failed.',
         },
         updated_at: new Date().toISOString(),
@@ -176,10 +164,9 @@ Deno.serve(async (req) => {
 
   const providerPayload = await readProviderPayload(lipilaResponse);
   if (!lipilaResponse.ok) {
-    const diagnosticPayload = providerDiagnostic(lipilaResponse, providerPayload, lipilaEndpoint);
     await supabase
       .from('document_orders')
-      .update({ provider_payload: diagnosticPayload, updated_at: new Date().toISOString() })
+      .update({ provider_payload: providerPayload, updated_at: new Date().toISOString() })
       .eq('reference', reference);
 
     return jsonResponse(
