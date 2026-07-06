@@ -33,20 +33,6 @@ function mapProduct(row: Record<string, unknown>) {
   };
 }
 
-async function readProviderPayload(response: Response) {
-  const text = await response.text().catch(() => '');
-  if (!text) return {};
-
-  try {
-    const parsed = JSON.parse(text);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : { raw: parsed };
-  } catch {
-    return { raw: text.slice(0, 2000) };
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return optionsResponse();
   if (req.method !== 'POST') return jsonResponse({ ok: false, error: 'Method not allowed' }, 405);
@@ -123,6 +109,7 @@ Deno.serve(async (req) => {
   }
 
   const collectionPayload = {
+    callbackUrl: paymentCallbackUrl.toString(),
     referenceId: reference,
     amount,
     narration: `${product.title} - ${customerName}`,
@@ -133,36 +120,17 @@ Deno.serve(async (req) => {
     email: customerEmail,
   };
 
-  let lipilaResponse: Response;
-  try {
-    lipilaResponse = await fetch(`${lipilaApiBaseUrl}/api/v1/collections/mobile-money`, {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        callbackUrl: paymentCallbackUrl.toString(),
-        'content-type': 'application/json',
-        'x-api-key': lipilaApiKey,
-      },
-      body: JSON.stringify(collectionPayload),
-    });
-  } catch (error) {
-    await supabase
-      .from('document_orders')
-      .update({
-        provider_payload: {
-          error: error instanceof Error ? error.message : 'Lipila request failed.',
-        },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('reference', reference);
+  const lipilaResponse = await fetch(`${lipilaApiBaseUrl}/api/v1/collections/mobile-money`, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      'x-api-key': lipilaApiKey,
+    },
+    body: JSON.stringify(collectionPayload),
+  });
 
-    return jsonResponse(
-      { ok: false, error: 'The payment provider could not be reached. Please try again shortly.', reference },
-      502,
-    );
-  }
-
-  const providerPayload = await readProviderPayload(lipilaResponse);
+  const providerPayload = await lipilaResponse.json().catch(async () => ({ raw: await lipilaResponse.text() }));
   if (!lipilaResponse.ok) {
     await supabase
       .from('document_orders')
