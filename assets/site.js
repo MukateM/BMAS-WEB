@@ -102,7 +102,15 @@
     if (lastActiveElement && typeof lastActiveElement.focus === 'function') lastActiveElement.focus();
   }
 
-  const profileModal = document.getElementById('profileModal');
+  const resourcePromo = document.getElementById('resourcePromo') || document.getElementById('profileModal');
+
+  function isResourcePromoOpen() {
+    return Boolean(
+      resourcePromo &&
+        !resourcePromo.classList.contains('is-hidden') &&
+        !resourcePromo.classList.contains('hidden'),
+    );
+  }
 
   if (videoModal && videoFrame) {
     function setVideoPlayback(isPlaying) {
@@ -113,7 +121,7 @@
 
     function openVideoModal() {
       if (consultModal && consultModal.classList.contains('flex') && !consultModal.classList.contains('hidden')) return;
-      if (profileModal && profileModal.classList.contains('flex') && !profileModal.classList.contains('hidden')) return;
+      if (isResourcePromoOpen()) return;
 
       setVideoPlayback(true);
       openModal(videoModal, '#closeVideo');
@@ -239,70 +247,64 @@
     });
   }
 
-  if (profileModal && document.body?.dataset?.page === 'home') {
+  if (resourcePromo && document.body?.dataset?.page === 'home') {
+    let resourcePromoIntroTimer = null;
+
     // Lucius Fox handles the polished first impression.
-    function openProfileModal() {
-      openModal(profileModal, '#downloadProfile');
+    function openResourcePromo() {
+      lastActiveElement = document.activeElement;
+      resourcePromo.classList.remove('hidden', 'is-hidden');
+
+      if (!resourcePromo.classList.contains('resource-promo--intro')) {
+        resourcePromo.classList.add('resource-promo--intro');
+      }
+
+      window.clearTimeout(resourcePromoIntroTimer);
+      resourcePromoIntroTimer = window.setTimeout(() => {
+        resourcePromo.classList.remove('resource-promo--intro');
+      }, 6000);
     }
 
-    function closeProfileModal() {
-      closeModal(profileModal);
+    function closeResourcePromo() {
+      window.clearTimeout(resourcePromoIntroTimer);
+      setProfilePromptSeen();
+      resourcePromo.classList.add('is-hidden');
+      if (lastActiveElement && typeof lastActiveElement.focus === 'function') lastActiveElement.focus();
     }
 
-    const profileClose = document.getElementById('closeProfile');
-    if (profileClose) profileClose.addEventListener('click', closeProfileModal);
+    openResourcePromo();
 
-    const profileBackdrop = document.getElementById('profileBackdrop');
-    if (profileBackdrop) profileBackdrop.addEventListener('click', closeProfileModal);
+    const profileClose = document.getElementById('closeResourcePromo') || document.getElementById('closeProfile');
+    if (profileClose) profileClose.addEventListener('click', closeResourcePromo);
 
-    const notNow = document.getElementById('notNowProfile');
-    if (notNow) notNow.addEventListener('click', closeProfileModal);
+    const notNow = document.getElementById('notNowResourcePromo') || document.getElementById('notNowProfile');
+    if (notNow) notNow.addEventListener('click', closeResourcePromo);
 
-    const download = document.getElementById('downloadProfile');
+    const download = document.getElementById('resourcePromoCover') || document.getElementById('downloadProfile');
     if (download) download.addEventListener('click', () => setProfilePromptSeen());
+    resourcePromo.querySelectorAll('a[href]').forEach((link) => {
+      link.addEventListener('click', () => setProfilePromptSeen());
+    });
 
     function setProfilePromptSeen() {
       try {
-        localStorage.setItem('bmas_profile_prompt_seen', String(Date.now()));
+        localStorage.setItem('bmas_salary_report_prompt_seen_v2', String(Date.now()));
       } catch (e) {
       }
-    }
-
-    function shouldShowProfilePrompt() {
-      if (window.matchMedia?.('(max-width: 640px)').matches) return false;
-
-      try {
-        const raw = localStorage.getItem('bmas_profile_prompt_seen');
-        if (!raw) return true;
-        const last = Number(raw);
-        if (!Number.isFinite(last)) return true;
-        const oneDayMs = 24 * 60 * 60 * 1000;
-        return Date.now() - last > oneDayMs;
-      } catch (e) {
-        return true;
-      }
-    }
-
-    if (shouldShowProfilePrompt()) {
-      window.setTimeout(() => {
-        if (consultModal && consultModal.classList.contains('flex') && !consultModal.classList.contains('hidden')) return;
-        openProfileModal();
-        setProfilePromptSeen();
-      }, 650);
     }
 
     document.addEventListener('keydown', (e) => {
-      const isOpen = profileModal.classList.contains('flex') && !profileModal.classList.contains('hidden');
+      const isOpen = isResourcePromoOpen();
       if (!isOpen) return;
 
       if (e.key === 'Escape') {
         e.preventDefault();
-        closeProfileModal();
+        closeResourcePromo();
         return;
       }
 
       if (e.key === 'Tab') {
-        const focusable = Array.from(profileModal.querySelectorAll(focusableSelector)).filter(
+        const focusable = Array.from(resourcePromo.querySelectorAll(focusableSelector)).filter(
           (el) => !el.hasAttribute('disabled') && el.getAttribute('tabindex') !== '-1',
         );
         if (focusable.length === 0) return;

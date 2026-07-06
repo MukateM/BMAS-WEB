@@ -6,6 +6,7 @@ let products = [];
 
 const productCovers = {
   'hr-survey-j25': 'assets/resources/hr-survey-j25-cover.png',
+  'hr-officer-salary-report-2026': 'assets/resources/hr-officer-salary-report-2026-cover.jpeg',
 };
 
 function safeText(value) {
