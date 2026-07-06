@@ -64,11 +64,7 @@ export function getQuizEnv() {
 
   const supabaseAnonKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
     fileEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    fileEnv.SUPABASE_ANON_KEY ||
-    fileEnv.VITE_SUPABASE_ANON_KEY ||
     '';
 
   const siteUrl =
@@ -109,12 +105,11 @@ export function getBearerToken(req) {
   return header.slice('Bearer '.length).trim();
 }
 
-export async function getAuthenticatedSupabaseUser(req, options = {}) {
-  const backendName = options.backendName || 'BMAS account backend';
+export async function getAuthenticatedQuizUser(req) {
   const { client, env } = getQuizAdminClient();
 
   if (!client) {
-    return { client: null, env, user: null, error: `${backendName} is not configured yet.`, status: 503 };
+    return { client: null, env, user: null, error: 'Quiz backend is not configured yet.', status: 503 };
   }
 
   const token = getBearerToken(req);
@@ -128,8 +123,4 @@ export async function getAuthenticatedSupabaseUser(req, options = {}) {
   }
 
   return { client, env, user: data.user, error: null, status: 200 };
-}
-
-export async function getAuthenticatedQuizUser(req) {
-  return getAuthenticatedSupabaseUser(req, { backendName: 'Quiz backend' });
 }
