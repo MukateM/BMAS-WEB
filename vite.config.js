@@ -4,6 +4,8 @@ import { basename, resolve } from 'path'
 const localApiRoutes = {
   '/api/account-delete': './api/account-delete.js',
   '/api/account-signup': './api/account-signup.js',
+  '/api/analytics': './api/analytics.js',
+  '/api/analytics-summary': './api/analytics-summary.js',
   '/api/compliance-lead': './api/compliance-lead.js',
   '/api/payroll': './api/payroll.js',
   '/api/quiz-config': './api/quiz-config.js',
@@ -96,6 +98,7 @@ function readPartial(name) {
 const pageByFile = {
   'about.html': 'about',
   'account.html': 'documents',
+  'analytics.html': 'analytics',
   'careers.html': 'careers',
   'clients.html': 'clients',
   'compliance-check.html': 'compliance',
@@ -177,7 +180,13 @@ function sharedPartialsPlugin() {
     transformIndexHtml: {
       order: 'pre',
       handler(html, ctx) {
-        return html
+        const filename = basename(ctx.filename || '');
+        const shouldInjectAnalytics = filename !== 'analytics.html' && !html.includes('/assets/site-analytics.js');
+        const withAnalytics = shouldInjectAnalytics
+          ? html.replace('</body>', '<script src="/assets/site-analytics.js" defer></script>\n</body>')
+          : html;
+
+        return withAnalytics
           .replace('<!-- bmas:header -->', renderHeader(ctx.filename || 'index.html'))
           .replace('<!-- bmas:footer -->', readPartial('footer.html'))
           .replace('<!-- bmas:consult-modal -->', readPartial('consult-modal.html'));
@@ -195,6 +204,7 @@ export default {
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        analytics: resolve(__dirname, 'analytics.html'),
         quiz: resolve(__dirname, 'employment-law-quiz.html'),
         about: resolve(__dirname, 'about.html'),
         account: resolve(__dirname, 'account.html'),
