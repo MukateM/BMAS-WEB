@@ -1,5 +1,5 @@
 (() => {
-  const endpoint = '/api/analytics';
+  const endpoint = '/api/documents?action=analytics-event';
   const visitorKey = 'bmas.analytics.visitor_id';
   const sessionKey = 'bmas.analytics.session_id';
 

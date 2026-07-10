@@ -4,8 +4,6 @@ import { basename, resolve } from 'path'
 const localApiRoutes = {
   '/api/account-delete': './api/account-delete.js',
   '/api/account-signup': './api/account-signup.js',
-  '/api/analytics': './api/analytics.js',
-  '/api/analytics-summary': './api/analytics-summary.js',
   '/api/compliance-lead': './api/compliance-lead.js',
   '/api/payroll': './api/payroll.js',
   '/api/quiz-config': './api/quiz-config.js',

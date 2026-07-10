@@ -100,8 +100,8 @@ async function loadAnalytics(event) {
   try {
     setStatus('Checking...');
     const days = event?.currentTarget === rangeForm ? rangeDaysInput.value : daysInput.value;
-    const params = new URLSearchParams({ days });
-    const response = await fetch(`/api/analytics-summary?${params}`, {
+    const params = new URLSearchParams({ action: 'analytics-summary', days });
+    const response = await fetch(`/api/documents?${params}`, {
       headers: { 'x-analytics-admin-key': accessCode },
       credentials: 'same-origin',
     });
