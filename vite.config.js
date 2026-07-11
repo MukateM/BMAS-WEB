@@ -110,6 +110,7 @@ const pageByFile = {
   'documents.html': 'documents',
   'library.html': 'documents',
   'reader.html': 'documents',
+  'salary-survey-zambia.html': 'salary-survey',
   'payroll-calculator.html': 'payroll',
   'service-cafeteria.html': 'service-cafeteria',
   'services.html': 'services',
@@ -135,7 +136,7 @@ function renderHeader(filename) {
   const inactiveTool = 'rounded px-3 py-2 hover:bg-slate-50';
   const activeMobileTool = 'block py-2 pl-3 font-medium text-slate-900';
   const inactiveMobileTool = 'block py-2 pl-3';
-  const isToolPage = ['compliance', 'payroll', 'quiz', 'service-cafeteria', 'hr-metrics', 'documents'].includes(activePage);
+  const isToolPage = ['compliance', 'payroll', 'quiz', 'service-cafeteria', 'hr-metrics', 'documents', 'salary-survey'].includes(activePage);
 
   return renderTemplate(header, {
     headerClass:
@@ -153,6 +154,7 @@ function renderHeader(filename) {
     navPayrollMenuClass: classFor(activePage, 'payroll', activeTool, inactiveTool),
     navHrMetricsMenuClass: classFor(activePage, 'hr-metrics', activeTool, inactiveTool),
     navDocumentsMenuClass: classFor(activePage, 'documents', activeTool, inactiveTool),
+    navSalarySurveyMenuClass: classFor(activePage, 'salary-survey', activeTool, inactiveTool),
     navComplianceMenuClass: classFor(activePage, 'compliance', activeTool, inactiveTool),
     navQuizMenuClass: classFor(activePage, 'quiz', activeTool, inactiveTool),
     navCafeteriaMenuClass: classFor(activePage, 'service-cafeteria', activeTool, inactiveTool),
@@ -166,6 +168,7 @@ function renderHeader(filename) {
     mobilePayrollClass: classFor(activePage, 'payroll', activeMobileTool, inactiveMobileTool),
     mobileHrMetricsClass: classFor(activePage, 'hr-metrics', activeMobileTool, inactiveMobileTool),
     mobileDocumentsClass: classFor(activePage, 'documents', activeMobileTool, inactiveMobileTool),
+    mobileSalarySurveyClass: classFor(activePage, 'salary-survey', activeMobileTool, inactiveMobileTool),
     mobileComplianceClass: classFor(activePage, 'compliance', activeMobileTool, inactiveMobileTool),
     mobileQuizClass: classFor(activePage, 'quiz', activeMobileTool, inactiveMobileTool),
     mobileCafeteriaClass: classFor(activePage, 'service-cafeteria', activeMobileTool, inactiveMobileTool),
@@ -218,6 +221,7 @@ export default {
         'payroll-calculator': resolve(__dirname, 'payroll-calculator.html'),
         'hr-metrics-calculator': resolve(__dirname, 'hr-metrics-calculator.html'),
         'service-cafeteria': resolve(__dirname, 'service-cafeteria.html'),
+        'salary-survey-zambia': resolve(__dirname, 'salary-survey-zambia.html'),
         documents: resolve(__dirname, 'documents.html'),
         library: resolve(__dirname, 'library.html'),
         reader: resolve(__dirname, 'reader.html'),

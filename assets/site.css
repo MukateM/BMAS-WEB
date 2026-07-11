@@ -518,6 +518,145 @@ body[data-page="service-cafeteria"] {
   box-shadow: 0 10px 26px rgba(15,23,42,0.05);
 }
 
+.survey-ad-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.survey-ad-hero {
+  border-bottom: 1px solid #dbe4ea;
+  background:
+    linear-gradient(180deg, rgba(248,250,252,0.98), rgba(239,246,249,0.98)),
+    var(--noise);
+  background-size: auto, 460px 460px;
+}
+
+.survey-ad-inner {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+  padding-top: 7rem;
+  padding-bottom: 2.5rem;
+}
+
+.survey-ad-copy {
+  max-width: 47rem;
+}
+
+.survey-ad-copy h1 {
+  margin-top: 0.75rem;
+  max-width: 46rem;
+  color: #0f172a;
+  font-size: clamp(2.2rem, 5vw, 4.35rem);
+  font-weight: 850;
+  line-height: 0.98;
+}
+
+.survey-ad-copy > p:not(.documents-kicker) {
+  margin-top: 1rem;
+  max-width: 41rem;
+  color: #475569;
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.survey-ad-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.15rem;
+}
+
+.survey-ad-cover {
+  display: block;
+  width: min(14rem, 62vw);
+  color: inherit;
+  justify-self: start;
+  text-decoration: none;
+}
+
+.survey-ad-cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  box-shadow: 0 24px 48px rgba(15,23,42,0.18);
+}
+
+.survey-ad-content {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+.survey-ad-main {
+  display: grid;
+  gap: 2rem;
+}
+
+.survey-ad-main h2,
+.survey-ad-panel h2 {
+  margin-top: 0.35rem;
+  color: #0f172a;
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  font-weight: 830;
+  line-height: 1.1;
+}
+
+.survey-ad-main p,
+.survey-ad-panel p {
+  margin-top: 0.75rem;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.survey-ad-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.survey-ad-grid article,
+.survey-ad-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: rgba(255,255,255,0.96);
+  padding: 1.1rem;
+  box-shadow: 0 10px 26px rgba(15,23,42,0.05);
+}
+
+.survey-ad-grid h3 {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 820;
+}
+
+.survey-ad-panel {
+  align-self: start;
+}
+
+.survey-ad-panel .documents-primary-link {
+  margin-top: 1rem;
+}
+
+@media (min-width: 880px) {
+  .survey-ad-inner {
+    grid-template-columns: minmax(0, 1fr) 16rem;
+  }
+
+  .survey-ad-cover {
+    justify-self: end;
+  }
+
+  .survey-ad-content {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+  }
+
+  .survey-ad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .account-shell {
   min-height: 64vh;
 }
