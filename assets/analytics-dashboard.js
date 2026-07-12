@@ -3,10 +3,12 @@ const keyInput = document.getElementById('analyticsKey');
 const daysInput = document.getElementById('analyticsDays');
 const rangeForm = document.getElementById('rangeForm');
 const rangeDaysInput = document.getElementById('rangeDays');
+const downloadCsvButton = document.getElementById('downloadCsv');
 const statusEl = document.getElementById('status');
 const accessPanel = document.getElementById('accessPanel');
 const dashboardShell = document.getElementById('dashboardShell');
 let accessCode = '';
+let currentAnalytics = null;
 
 const fields = {
   pageviews: document.getElementById('totalPageviews'),
@@ -183,6 +185,88 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function csvRow(values) {
+  return values.map(csvCell).join(',');
+}
+
+function appendSection(lines, title, headers, rows) {
+  lines.push(csvRow([title]));
+  lines.push(csvRow(headers));
+  rows.forEach((row) => lines.push(csvRow(row)));
+  lines.push('');
+}
+
+function rankedRows(rows = []) {
+  return rows.map((row, index) => [index + 1, row.label, row.count]);
+}
+
+function recentRows(rows = []) {
+  return rows.map((row, index) => {
+    const occurred = row.occurred_at ? new Date(row.occurred_at) : null;
+    const timestamp = occurred && !Number.isNaN(occurred.getTime()) ? occurred.toISOString() : '';
+    return [
+      index + 1,
+      timestamp,
+      row.event_type,
+      row.path,
+      row.referrer_host || 'Direct',
+      row.device_type,
+      row.browser,
+      row.os,
+      row.country || 'Unknown',
+    ];
+  });
+}
+
+function downloadCsv() {
+  if (!currentAnalytics) return;
+
+  const payload = currentAnalytics;
+  const lines = [];
+  appendSection(lines, 'Summary', ['Metric', 'Value'], [
+    ['Range Days', payload.range?.days],
+    ['Since', payload.range?.since],
+    ['Pageviews', payload.totals?.pageviews],
+    ['Visitors', payload.totals?.visitors],
+    ['Sessions', payload.totals?.sessions],
+    ['Events', payload.totals?.events],
+  ]);
+  appendSection(
+    lines,
+    'Daily Pageviews',
+    ['Date', 'Pageviews'],
+    (payload.daily || []).map((row) => [row.date, row.pageviews])
+  );
+  appendSection(lines, 'Top Pages', ['Rank', 'Page', 'Count'], rankedRows(payload.topPages));
+  appendSection(lines, 'Referrers', ['Rank', 'Referrer', 'Count'], rankedRows(payload.referrers));
+  appendSection(lines, 'Devices', ['Rank', 'Device', 'Count'], rankedRows(payload.devices));
+  appendSection(lines, 'Browsers', ['Rank', 'Browser', 'Count'], rankedRows(payload.browsers));
+  appendSection(lines, 'Countries', ['Rank', 'Country', 'Count'], rankedRows(payload.countries));
+  appendSection(
+    lines,
+    'Recent Events',
+    ['#', 'Occurred At', 'Type', 'Path', 'Referrer', 'Device', 'Browser', 'OS', 'Country'],
+    recentRows(payload.recent)
+  );
+
+  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  const days = payload.range?.days || rangeDaysInput.value || 'analytics';
+  const date = new Date().toISOString().slice(0, 10);
+  anchor.href = url;
+  anchor.download = `bmas-site-analytics-${days}d-${date}.csv`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function loadAnalytics(event) {
   event?.preventDefault?.();
   const submittedCode = keyInput.value.trim();
@@ -207,6 +291,8 @@ async function loadAnalytics(event) {
 
     accessPanel.classList.add('hidden');
     dashboardShell.classList.remove('hidden');
+    currentAnalytics = payload;
+    if (downloadCsvButton) downloadCsvButton.disabled = false;
     rangeDaysInput.value = String(payload.range.days);
     fields.pageviews.textContent = formatNumber(payload.totals.pageviews);
     fields.visitors.textContent = formatNumber(payload.totals.visitors);
@@ -227,3 +313,4 @@ async function loadAnalytics(event) {
 
 form?.addEventListener('submit', loadAnalytics);
 rangeForm?.addEventListener('submit', loadAnalytics);
+downloadCsvButton?.addEventListener('click', downloadCsv);
