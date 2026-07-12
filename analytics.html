@@ -7,9 +7,103 @@
   <title>BMAS Site Analytics</title>
   <link rel="icon" type="image/png" href="bmas.png" />
   <link rel="stylesheet" href="assets/tailwind.css" />
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    .sheet-wrap {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+    }
+
+    .sheet-toolbar {
+      border-bottom: 1px solid #cbd5e1;
+      background: #f8fafc;
+    }
+
+    .sheet-tabs {
+      border-bottom: 1px solid #cbd5e1;
+      background: #e2e8f0;
+    }
+
+    .sheet-tab {
+      border-right: 1px solid #cbd5e1;
+      background: #f8fafc;
+    }
+
+    .sheet-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+
+    .sheet-table th,
+    .sheet-table td {
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      overflow: hidden;
+      padding: 8px 10px;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .sheet-table th {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .sheet-table td:first-child,
+    .sheet-table th:first-child {
+      background: #f8fafc;
+      color: #64748b;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      width: 46px;
+    }
+
+    .sheet-table td.number {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .sheet-table tr:hover td {
+      background: #fffbeb;
+    }
+
+    .sheet-table tr:hover td:first-child {
+      background: #fef3c7;
+    }
+
+    .spark-cell {
+      align-items: center;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 56px;
+    }
+
+    .spark-track {
+      background: #e2e8f0;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .spark-fill {
+      background: #0f172a;
+      height: 100%;
+    }
+  </style>
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased">
-  <main class="mx-auto max-w-6xl px-5 py-8">
+  <main class="mx-auto max-w-7xl px-4 py-6">
     <section id="accessPanel" class="flex min-h-[80vh] items-center justify-center">
       <form id="analyticsForm" class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">BMAS</p>
@@ -26,67 +120,102 @@
     </section>
 
     <section id="dashboardShell" class="hidden">
-      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">BMAS</p>
-          <h1 class="mt-2 text-3xl font-extrabold">Site Analytics</h1>
-          <p class="mt-2 text-sm text-slate-600">First-party pageviews, visitors, referrers, devices, and top pages.</p>
+      <div class="sheet-wrap shadow-sm">
+        <div class="sheet-toolbar flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">BMAS Analytics Workbook</p>
+            <h1 class="mt-1 text-xl font-extrabold">Site Traffic Sheet</h1>
+          </div>
+          <form id="rangeForm" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <select id="rangeDays" class="border border-slate-300 bg-white px-3 py-2 text-sm">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+            <button class="bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Refresh</button>
+          </form>
         </div>
-        <form id="rangeForm" class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:flex-row">
-          <select id="rangeDays" class="rounded border border-slate-300 px-3 py-2 text-sm">
-            <option value="7">7 days</option>
-            <option value="30" selected>30 days</option>
-            <option value="90">90 days</option>
-          </select>
-          <button class="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Refresh</button>
-        </form>
-      </div>
 
-    <section class="grid gap-3 md:grid-cols-4">
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pageviews</p>
-        <p id="totalPageviews" class="mt-2 text-3xl font-extrabold">0</p>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Visitors</p>
-        <p id="totalVisitors" class="mt-2 text-3xl font-extrabold">0</p>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
-        <p id="totalSessions" class="mt-2 text-3xl font-extrabold">0</p>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Events</p>
-        <p id="totalEvents" class="mt-2 text-3xl font-extrabold">0</p>
-      </div>
-    </section>
+        <div class="sheet-tabs flex overflow-x-auto text-xs font-semibold text-slate-700">
+          <span class="sheet-tab px-4 py-2">Summary</span>
+          <span class="sheet-tab px-4 py-2">Daily</span>
+          <span class="sheet-tab px-4 py-2">Pages</span>
+          <span class="sheet-tab px-4 py-2">Sources</span>
+          <span class="sheet-tab px-4 py-2">Devices</span>
+          <span class="sheet-tab px-4 py-2">Recent Events</span>
+        </div>
 
-    <section class="mt-6 grid gap-4 lg:grid-cols-2">
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-bold">Daily Pageviews</h2>
-        <div id="dailyChart" class="mt-4 space-y-2"></div>
+        <section class="overflow-x-auto">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Metric</th>
+                <th class="number">Value</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Pageviews</td>
+                <td id="totalPageviews" class="number font-bold">0</td>
+                <td>Total pageview events in the selected range</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>Visitors</td>
+                <td id="totalVisitors" class="number font-bold">0</td>
+                <td>Unique hashed visitors</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>Sessions</td>
+                <td id="totalSessions" class="number font-bold">0</td>
+                <td>Unique browser sessions</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>Events</td>
+                <td id="totalEvents" class="number font-bold">0</td>
+                <td>All recorded analytics events</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="grid border-t border-slate-300 lg:grid-cols-2">
+          <div class="overflow-x-auto border-b border-slate-300 lg:border-r">
+            <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Daily Pageviews</div>
+            <div id="dailyChart"></div>
+          </div>
+          <div class="overflow-x-auto border-b border-slate-300">
+            <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Top Pages</div>
+            <div id="topPages"></div>
+          </div>
+          <div class="overflow-x-auto border-b border-slate-300 lg:border-r">
+            <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Referrers</div>
+            <div id="referrers"></div>
+          </div>
+          <div class="overflow-x-auto border-b border-slate-300">
+            <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Device Types</div>
+            <div id="devices"></div>
+          </div>
+          <div class="overflow-x-auto border-b border-slate-300 lg:border-r">
+            <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Browsers</div>
+            <div id="browsers"></div>
+          </div>
+          <div class="overflow-x-auto border-b border-slate-300">
+            <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Countries</div>
+            <div id="countries"></div>
+          </div>
+        </section>
+
+        <section class="overflow-x-auto">
+          <div class="bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">Recent Events</div>
+          <div id="recentEvents"></div>
+        </section>
       </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-bold">Top Pages</h2>
-        <div id="topPages" class="mt-4 space-y-2"></div>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-bold">Referrers</h2>
-        <div id="referrers" class="mt-4 space-y-2"></div>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-bold">Devices</h2>
-        <div id="devices" class="mt-4 space-y-2"></div>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-bold">Browsers</h2>
-        <div id="browsers" class="mt-4 space-y-2"></div>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-bold">Countries</h2>
-        <div id="countries" class="mt-4 space-y-2"></div>
-      </div>
-    </section>
     </section>
   </main>
 

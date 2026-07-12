@@ -27,56 +27,151 @@ function formatNumber(value) {
   return new Intl.NumberFormat().format(Number(value || 0));
 }
 
-function renderList(id, rows) {
+function emptySheet(message) {
+  return `
+    <table class="sheet-table">
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>${escapeHtml(message)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
+function renderRankedSheet(id, rows, labelName) {
   const el = document.getElementById(id);
   if (!el) return;
   if (!Array.isArray(rows) || rows.length === 0) {
-    el.innerHTML = '<p class="text-sm text-slate-500">No data yet.</p>';
+    el.innerHTML = emptySheet('No data yet.');
     return;
   }
 
   const max = Math.max(...rows.map((row) => row.count), 1);
-  el.innerHTML = rows
-    .map((row) => {
-      const width = Math.max(4, Math.round((row.count / max) * 100));
-      return `
-        <div>
-          <div class="mb-1 flex items-center justify-between gap-3 text-sm">
-            <span class="truncate">${escapeHtml(row.label)}</span>
-            <span class="font-semibold">${formatNumber(row.count)}</span>
-          </div>
-          <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full bg-amber-500" style="width:${width}%"></div>
-          </div>
-        </div>
-      `;
-    })
+  const body = rows
+    .map((row, index) => renderRankedRow(index + 1, row.label, row.count, max))
     .join('');
+
+  el.innerHTML = `
+    <table class="sheet-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>${escapeHtml(labelName)}</th>
+          <th>Share</th>
+          <th class="number">Count</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+function renderRankedRow(index, label, count, max) {
+  const width = Math.max(4, Math.round((Number(count || 0) / max) * 100));
+  return `
+    <tr>
+      <td>${index}</td>
+      <td title="${escapeHtml(label)}">${escapeHtml(label)}</td>
+      <td>
+        <div class="spark-cell">
+          <div class="spark-track"><div class="spark-fill" style="width:${width}%"></div></div>
+          <span class="number">${width}%</span>
+        </div>
+      </td>
+      <td class="number font-semibold">${formatNumber(count)}</td>
+    </tr>
+  `;
 }
 
 function renderDaily(rows) {
   const el = document.getElementById('dailyChart');
   if (!el) return;
   if (!Array.isArray(rows) || rows.length === 0) {
-    el.innerHTML = '<p class="text-sm text-slate-500">No pageviews yet.</p>';
+    el.innerHTML = emptySheet('No pageviews yet.');
     return;
   }
 
   const max = Math.max(...rows.map((row) => row.pageviews), 1);
-  el.innerHTML = rows
+  const body = rows
     .map((row) => {
       const width = Math.max(4, Math.round((row.pageviews / max) * 100));
       return `
-        <div class="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-3 text-sm">
-          <span class="text-slate-500">${escapeHtml(row.date)}</span>
-          <div class="h-3 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full bg-slate-900" style="width:${width}%"></div>
-          </div>
-          <span class="text-right font-semibold">${formatNumber(row.pageviews)}</span>
-        </div>
+        <tr>
+          <td>${escapeHtml(row.date.slice(8, 10))}</td>
+          <td>${escapeHtml(row.date)}</td>
+          <td>
+            <div class="spark-cell">
+              <div class="spark-track"><div class="spark-fill" style="width:${width}%"></div></div>
+              <span class="number">${width}%</span>
+            </div>
+          </td>
+          <td class="number font-semibold">${formatNumber(row.pageviews)}</td>
+        </tr>
       `;
     })
     .join('');
+
+  el.innerHTML = `
+    <table class="sheet-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Trend</th>
+          <th class="number">Pageviews</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+function renderRecent(rows) {
+  const el = document.getElementById('recentEvents');
+  if (!el) return;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    el.innerHTML = emptySheet('No recent events yet.');
+    return;
+  }
+
+  const body = rows
+    .map((row, index) => {
+      const occurred = row.occurred_at ? new Date(row.occurred_at) : null;
+      const timestamp = occurred && !Number.isNaN(occurred.getTime()) ? occurred.toLocaleString() : '';
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(timestamp)}</td>
+          <td>${escapeHtml(row.event_type)}</td>
+          <td title="${escapeHtml(row.path)}">${escapeHtml(row.path)}</td>
+          <td>${escapeHtml(row.referrer_host || 'Direct')}</td>
+          <td>${escapeHtml(row.device_type)}</td>
+          <td>${escapeHtml(row.browser)}</td>
+          <td>${escapeHtml(row.country || 'Unknown')}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  el.innerHTML = `
+    <table class="sheet-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Path</th>
+          <th>Referrer</th>
+          <th>Device</th>
+          <th>Browser</th>
+          <th>Country</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
 }
 
 function escapeHtml(value) {
@@ -118,11 +213,12 @@ async function loadAnalytics(event) {
     fields.sessions.textContent = formatNumber(payload.totals.sessions);
     fields.events.textContent = formatNumber(payload.totals.events);
     renderDaily(payload.daily);
-    renderList('topPages', payload.topPages);
-    renderList('referrers', payload.referrers);
-    renderList('devices', payload.devices);
-    renderList('browsers', payload.browsers);
-    renderList('countries', payload.countries);
+    renderRankedSheet('topPages', payload.topPages, 'Page');
+    renderRankedSheet('referrers', payload.referrers, 'Referrer');
+    renderRankedSheet('devices', payload.devices, 'Device');
+    renderRankedSheet('browsers', payload.browsers, 'Browser');
+    renderRankedSheet('countries', payload.countries, 'Country');
+    renderRecent(payload.recent);
     statusEl.classList.add('hidden');
   } catch (error) {
     setStatus(error.message || 'Analytics could not be loaded.', true);
