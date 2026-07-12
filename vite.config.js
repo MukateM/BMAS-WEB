@@ -184,7 +184,10 @@ function sharedPartialsPlugin() {
         const filename = basename(ctx.filename || '');
         const shouldInjectAnalytics = filename !== 'analytics.html' && !html.includes('/assets/site-analytics.js');
         const withAnalytics = shouldInjectAnalytics
-          ? html.replace('</body>', '<script src="/assets/site-analytics.js" defer></script>\n</body>')
+          ? html.replace(
+              '</body>',
+              '<script src="/assets/site-analytics.js" defer></script>\n<script type="module" src="/assets/vercel-analytics.js"></script>\n</body>'
+            )
           : html;
 
         return withAnalytics
