@@ -61,7 +61,7 @@ function renderRankedSheet(id, rows, labelName) {
         <tr>
           <th>#</th>
           <th>${escapeHtml(labelName)}</th>
-          <th>Share</th>
+          <th>Index</th>
           <th class="number">Count</th>
         </tr>
       </thead>
@@ -71,7 +71,8 @@ function renderRankedSheet(id, rows, labelName) {
 }
 
 function renderRankedRow(index, label, count, max) {
-  const width = Math.max(4, Math.round((Number(count || 0) / max) * 100));
+  const percentage = Math.round((Number(count || 0) / max) * 100);
+  const width = Math.max(4, percentage);
   return `
     <tr>
       <td>${index}</td>
@@ -79,7 +80,7 @@ function renderRankedRow(index, label, count, max) {
       <td>
         <div class="spark-cell">
           <div class="spark-track"><div class="spark-fill" style="width:${width}%"></div></div>
-          <span class="number">${width}%</span>
+          <span class="number">${percentage}%</span>
         </div>
       </td>
       <td class="number font-semibold">${formatNumber(count)}</td>
@@ -98,7 +99,8 @@ function renderDaily(rows) {
   const max = Math.max(...rows.map((row) => row.pageviews), 1);
   const body = rows
     .map((row) => {
-      const width = Math.max(4, Math.round((row.pageviews / max) * 100));
+      const percentage = Math.round((row.pageviews / max) * 100);
+      const width = Math.max(4, percentage);
       return `
         <tr>
           <td>${escapeHtml(row.date.slice(8, 10))}</td>
@@ -106,7 +108,7 @@ function renderDaily(rows) {
           <td>
             <div class="spark-cell">
               <div class="spark-track"><div class="spark-fill" style="width:${width}%"></div></div>
-              <span class="number">${width}%</span>
+              <span class="number">${percentage}%</span>
             </div>
           </td>
           <td class="number font-semibold">${formatNumber(row.pageviews)}</td>
@@ -121,7 +123,7 @@ function renderDaily(rows) {
         <tr>
           <th>#</th>
           <th>Date</th>
-          <th>Trend</th>
+          <th>Index</th>
           <th class="number">Pageviews</th>
         </tr>
       </thead>
