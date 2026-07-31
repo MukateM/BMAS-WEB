@@ -78,7 +78,7 @@
           includeSdl,
           otherDeductions,
           currency: 'ZMW',
-          allowanceRates: { housingRate: 0.3, transportRate: 0.1, lunchRate: 0.1 },
+          allowanceRates: { housingRate: 0.3, transportRate: 0.2, lunchRate: 0.1 },
         }),
       });
 

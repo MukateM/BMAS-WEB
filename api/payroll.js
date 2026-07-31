@@ -70,7 +70,7 @@ function computePaye(taxableIncome) {
 
 function normalizeAllowanceRates(allowanceRates) {
   const housingRate = Number(allowanceRates?.housingRate ?? 0.3);
-  const transportRate = Number(allowanceRates?.transportRate ?? 0.1);
+  const transportRate = Number(allowanceRates?.transportRate ?? 0.2);
   const lunchRate = Number(allowanceRates?.lunchRate ?? 0.1);
   return {
     housingRate,
