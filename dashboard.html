@@ -25,19 +25,33 @@
     </section>
 
     <section id="dashboardPanel" class="hidden">
-      <header class="flex flex-col gap-4 rounded-2xl bg-slate-900 p-6 text-white md:flex-row md:items-center md:justify-between">
-        <div><p class="text-xs font-bold uppercase tracking-[.2em] text-amber-300">BMAS</p><h1 class="mt-1 text-3xl font-extrabold">Sales pipeline</h1><p id="staffIdentity" class="mt-1 text-sm text-slate-300"></p></div>
+      <header class="flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-slate-950 to-teal-950 p-6 text-white shadow-lg md:flex-row md:items-center md:justify-between">
+        <div><p class="text-xs font-bold uppercase tracking-[.2em] text-amber-300">BMAS sales workspace</p><h1 class="mt-1 text-3xl font-extrabold">Good to see you</h1><p id="staffIdentity" class="mt-1 text-sm text-slate-300"></p></div>
         <button id="signOut" class="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold hover:bg-slate-800">Sign out</button>
       </header>
 
-      <div id="metrics" class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-6"></div>
+      <section class="mt-7"><h2 class="text-xl font-extrabold">Your sales overview</h2><p class="mt-1 text-sm text-slate-600">A quick view of where every enquiry stands.</p><div id="metrics" class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6"></div></section>
       <div class="mt-6 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 md:flex-row">
         <input id="search" type="search" placeholder="Search name, company, or email" class="flex-1 rounded-lg border border-slate-300 px-3 py-2" />
         <select id="statusFilter" class="rounded-lg border border-slate-300 px-3 py-2"><option value="">All stages</option><option value="new">New</option><option value="contacted">Contacted</option><option value="qualified">Qualified</option><option value="proposal">Proposal</option><option value="won">Won</option><option value="lost">Lost</option></select>
-        <button id="refresh" class="rounded-lg bg-slate-900 px-5 py-2 font-semibold text-white">Refresh</button>
+        <button id="refresh" class="rounded-lg border border-slate-300 px-5 py-2 font-semibold text-slate-700 hover:bg-slate-50">Refresh list</button>
       </div>
       <p id="dashboardStatus" class="mt-3 min-h-5 text-sm text-slate-600" role="status"></p>
-      <div id="leadGrid" class="mt-3 grid gap-4 lg:grid-cols-2"></div>
+      <div id="leadGrid" class="mt-3 grid gap-4"></div>
+
+      <section class="mt-10">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><p class="text-xs font-bold uppercase tracking-[.18em] text-amber-700">Find new clients</p><h2 class="mt-1 text-2xl font-extrabold">Prospecting</h2><p class="mt-1 text-sm text-slate-600">Keep potential clients and email drafts in one place. Nothing is sent without your approval.</p></div><button id="toggleProspectForm" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Add a prospect</button></div>
+        <form id="prospectForm" class="mt-4 hidden gap-3 rounded-2xl border bg-white p-5 shadow-sm md:grid-cols-2">
+          <input name="companyName" required placeholder="Company name" class="rounded-lg border px-3 py-2" /><input name="email" type="email" required placeholder="Business email" class="rounded-lg border px-3 py-2" />
+          <input name="contactName" placeholder="Contact name" class="rounded-lg border px-3 py-2" /><input name="jobTitle" placeholder="Job title" class="rounded-lg border px-3 py-2" />
+          <input name="website" type="url" placeholder="Company website" class="rounded-lg border px-3 py-2" /><input name="industry" placeholder="Industry" class="rounded-lg border px-3 py-2" />
+          <input name="location" placeholder="Location" value="Zambia" class="rounded-lg border px-3 py-2" /><input name="serviceInterest" placeholder="Likely BMAS service need" class="rounded-lg border px-3 py-2" />
+          <input name="sourceUrl" type="url" placeholder="Public source URL" class="rounded-lg border px-3 py-2 md:col-span-2" /><textarea name="qualificationReason" rows="2" placeholder="Why this company is a suitable prospect" class="rounded-lg border px-3 py-2 md:col-span-2"></textarea>
+          <input name="emailSubject" placeholder="Email subject" class="rounded-lg border px-3 py-2 md:col-span-2" /><textarea name="emailBody" rows="6" placeholder="Personalized email draft" class="rounded-lg border px-3 py-2 md:col-span-2"></textarea>
+          <button class="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white md:col-span-2">Save prospect and draft</button>
+        </form>
+        <p id="prospectStatus" class="mt-3 min-h-5 text-sm text-slate-600"></p><div id="prospectGrid" class="mt-3 grid gap-4 lg:grid-cols-2"></div>
+      </section>
     </section>
   </main>
   <script type="module" src="assets/dashboard.js"></script>

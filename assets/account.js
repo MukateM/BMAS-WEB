@@ -115,6 +115,7 @@ function setAuthMode(nextMode) {
 
 function getAccountRedirectUrl() {
   const url = new URL('/account', window.location.origin);
+  url.searchParams.set('mode', 'recovery');
   url.searchParams.set('next', state.nextPath);
   return url.toString();
 }
@@ -169,7 +170,9 @@ async function initSupabase() {
   state.supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
   const { data } = await state.supabase.auth.getSession();
   state.session = data.session || null;
-  isPasswordRecovery = window.location.hash.includes('type=recovery');
+  isPasswordRecovery =
+    window.location.hash.includes('type=recovery') ||
+    new URLSearchParams(window.location.search).get('mode') === 'recovery';
   state.supabase.auth.onAuthStateChange((event, session) => {
     state.session = session;
     if (event === 'PASSWORD_RECOVERY') {

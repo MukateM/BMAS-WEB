@@ -1,4 +1,18 @@
 (() => {
+  // Supabase falls back to the configured site URL when a recovery redirect is
+  // not allowlisted. Preserve the one-time callback and hand it to the account page.
+  const recoveryHash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const recoveryQuery = new URLSearchParams(window.location.search);
+  const isRecoveryCallback = recoveryHash.get('type') === 'recovery' || recoveryQuery.get('type') === 'recovery';
+  if (isRecoveryCallback && window.location.pathname !== '/account' && window.location.pathname !== '/account.html') {
+    const recoveryUrl = new URL('/account', window.location.origin);
+    recoveryQuery.forEach((value, key) => recoveryUrl.searchParams.set(key, value));
+    recoveryUrl.searchParams.set('mode', 'recovery');
+    recoveryUrl.hash = window.location.hash;
+    window.location.replace(recoveryUrl.toString());
+    return;
+  }
+
   // Alfred keeps the lights on.
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
