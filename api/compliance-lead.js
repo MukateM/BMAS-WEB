@@ -1,4 +1,6 @@
 import { assertSimpleRateLimit, getClientIp } from './_lib/request-security.js';
+import websiteLeadHandler from './_lib/website-lead.js';
+import salesDashboardHandler from './_lib/sales-dashboard.js';
 
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xldoyovv';
 const MAX_PAYLOAD_BYTES = 15000;
@@ -39,6 +41,9 @@ async function verifyRecaptcha(token) {
 }
 
 export default async function handler(req, res) {
+  if (req.body?.dashboardAction) return salesDashboardHandler(req, res);
+  if (req.query?.type === 'consultation' || req.body?.service) return websiteLeadHandler(req, res);
+
   if (req.method !== 'POST') {
     sendJson(res, 405, { ok: false, error: 'Method not allowed.' });
     return;

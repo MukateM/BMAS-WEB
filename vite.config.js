@@ -5,6 +5,7 @@ const localApiRoutes = {
   '/api/account-delete': './api/account-delete.js',
   '/api/account-signup': './api/account-signup.js',
   '/api/compliance-lead': './api/compliance-lead.js',
+  '/api/leads': './api/_lib/website-lead.js',
   '/api/payroll': './api/payroll.js',
   '/api/quiz-config': './api/quiz-config.js',
   '/api/quiz-leaderboard': './api/quiz-leaderboard.js',
@@ -97,6 +98,7 @@ const pageByFile = {
   'about.html': 'about',
   'account.html': 'documents',
   'analytics.html': 'analytics',
+  'dashboard.html': 'dashboard',
   'careers.html': 'careers',
   'clients.html': 'clients',
   'compliance-check.html': 'compliance',
@@ -209,6 +211,7 @@ export default {
       input: {
         main: resolve(__dirname, 'index.html'),
         analytics: resolve(__dirname, 'analytics.html'),
+        dashboard: resolve(__dirname, 'dashboard.html'),
         quiz: resolve(__dirname, 'employment-law-quiz.html'),
         about: resolve(__dirname, 'about.html'),
         account: resolve(__dirname, 'account.html'),

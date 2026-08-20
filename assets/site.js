@@ -247,6 +247,65 @@
     });
   }
 
+  const consultForm = document.getElementById('consultForm');
+  if (consultForm) {
+    const status = document.getElementById('consultStatus');
+    const submit = document.getElementById('consultSubmit');
+
+    function showConsultStatus(message, isError) {
+      if (!status) return;
+      status.textContent = message;
+      status.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-emerald-50', 'text-emerald-700');
+      status.classList.add(isError ? 'bg-red-50' : 'bg-emerald-50', isError ? 'text-red-700' : 'text-emerald-700');
+    }
+
+    consultForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!consultForm.reportValidity()) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const payload = {
+        fullName: document.getElementById('c_name')?.value,
+        email: document.getElementById('c_email')?.value,
+        phone: document.getElementById('c_phone')?.value,
+        company: document.getElementById('c_company')?.value,
+        service: document.getElementById('c_service')?.value,
+        message: document.getElementById('c_message')?.value,
+        consent: Boolean(document.getElementById('c_consent')?.checked),
+        gotcha: consultForm.querySelector('[name="_gotcha"]')?.value,
+        pageUrl: window.location.href,
+        referrer: document.referrer,
+        utmSource: params.get('utm_source'),
+        utmMedium: params.get('utm_medium'),
+        utmCampaign: params.get('utm_campaign'),
+      };
+
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'Sending...';
+      }
+
+      try {
+        const response = await fetch('/api/compliance-lead?type=consultation', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Unable to send your enquiry.');
+        consultForm.reset();
+        showConsultStatus('Thank you. Your enquiry is logged and the BMAS team will respond within 1 business day.', false);
+      } catch (error) {
+        showConsultStatus(error.message || 'Unable to send your enquiry. Please try again.', true);
+      } finally {
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = 'Send';
+        }
+      }
+    });
+  }
+
   if (resourcePromo && document.body?.dataset?.page === 'home') {
     let resourcePromoIntroTimer = null;
 
