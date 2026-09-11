@@ -687,10 +687,11 @@ body[data-page="service-cafeteria"] {
   display: grid;
   gap: 1rem;
   align-items: start;
-  justify-content: stretch;
+  justify-content: center;
 }
 
 .account-card {
+  width: 100%;
   border: 1px solid #dbe4ea;
   border-radius: 0.5rem;
   background: rgba(255,255,255,0.98);
@@ -698,10 +699,18 @@ body[data-page="service-cafeteria"] {
   box-shadow: 0 16px 34px rgba(15,23,42,0.06);
 }
 
+.account-card-auth {
+  max-width: 27rem;
+}
+
 .account-card h2 {
   color: #0f172a;
   font-size: 1.25rem;
   font-weight: 820;
+}
+
+.account-auth-panel {
+  max-width: 100%;
 }
 
 .account-panel {
@@ -966,11 +975,16 @@ body[data-page="service-cafeteria"] {
 @media (min-width: 900px) {
   .account-layout {
     grid-template-columns: minmax(0, 100%);
+    justify-items: center;
   }
 
   .account-card {
     max-width: 68rem;
     padding: 1.15rem;
+  }
+
+  .account-card-auth {
+    max-width: 27rem;
   }
 
   .account-details {

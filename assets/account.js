@@ -152,6 +152,7 @@ function updateUi() {
   els.continueLink.href = state.nextPath;
   els.signedIn.classList.toggle('hidden', !email);
   els.authPanel.classList.toggle('hidden', Boolean(email));
+  els.authPanel.closest('.account-card')?.classList.toggle('account-card-auth', !email);
   els.avatar.textContent = getInitials(displayName);
   els.signedInText.textContent = email ? 'Signed in and ready to access your resources.' : '';
   els.emailText.textContent = email;
