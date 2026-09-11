@@ -231,6 +231,8 @@ export default {
         documents: resolve(__dirname, 'documents.html'),
         library: resolve(__dirname, 'library.html'),
         reader: resolve(__dirname, 'reader.html'),
+        'privacy-policy': resolve(__dirname, 'privacy-policy.html'),
+        'terms-and-conditions': resolve(__dirname, 'terms-and-conditions.html'),
       }
     }
   }

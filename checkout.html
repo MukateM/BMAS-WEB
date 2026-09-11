@@ -59,6 +59,10 @@
             </label>
             <button id="checkoutAuthSubmit" type="submit" class="documents-primary-btn">Sign in</button>
             <button id="checkoutAuthToggle" type="button" class="w-full rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">New here? Create an account</button>
+            <p class="text-xs leading-5 text-slate-500">
+              BMAS uses your account details to provide library access and support. We do not sell your personal data.
+              See our <a class="font-semibold text-teal-700" href="/privacy-policy">Privacy Policy</a>.
+            </p>
             <p id="checkoutAuthStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
           </form>
         </div>
@@ -72,6 +76,9 @@
             <span class="font-medium">Mobile money number</span>
             <input id="checkoutCustomerPhone" class="mt-1 w-full rounded border border-slate-300 px-3 py-2" autocomplete="tel" placeholder="+260..." required />
           </label>
+          <p class="text-xs leading-5 text-slate-500">
+            Your phone number is used to process this payment request and maintain purchase records. BMAS does not sell customer data.
+          </p>
           <button id="checkoutPaymentButton" type="submit" class="documents-primary-btn" disabled>
             Send payment request
           </button>
