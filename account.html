@@ -30,8 +30,8 @@
           <div class="account-profile-header">
             <div class="account-avatar" id="accountAvatar" aria-hidden="true">B</div>
             <div>
-              <h2 id="accountSignedInTitle">My account</h2>
-              <p id="accountSignedInText"></p>
+              <h2 id="accountSignedInTitle">Library account</h2>
+              <p id="accountSignedInText">Signed in and ready to access your resources.</p>
             </div>
           </div>
 
@@ -48,7 +48,9 @@
         </div>
 
         <form id="accountSettingsForm" class="account-panel account-settings-form">
-          <h3>Profile</h3>
+          <div class="account-section-heading">
+            <h3>Profile</h3>
+          </div>
           <label class="block text-sm text-slate-700">
             <span class="font-medium">Full name</span>
             <input id="accountSettingsName" class="account-input" autocomplete="name" />
@@ -60,7 +62,6 @@
         <form id="accountPasswordForm" class="account-panel account-password-panel account-settings-form">
           <div class="account-section-heading">
             <h3>Password</h3>
-            <span>Secure reset</span>
           </div>
           <p id="accountPasswordHelp" class="account-help">We will send a secure reset link to your email before any password change.</p>
           <div id="accountRecoveryFields" class="hidden">
@@ -77,26 +78,29 @@
           <p id="accountPasswordStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
         </form>
 
-        <section class="account-panel account-danger-zone">
-          <h3>Delete account</h3>
-          <p>Deleting your account removes sign-in access. Purchase records may be retained by BMAS for payment and compliance records.</p>
-          <label class="mt-3 block text-sm text-slate-700">
-            <span class="font-medium">Current password</span>
-            <input id="accountDeletePassword" type="password" class="account-input" autocomplete="current-password" />
-          </label>
-          <label class="mt-3 block text-sm text-slate-700">
-            <span class="font-medium">Type DELETE to confirm</span>
-            <input id="accountDeleteConfirm" class="account-input" autocomplete="off" />
-          </label>
-          <button id="accountDeleteSubmit" type="button" class="account-danger-btn">Delete account</button>
-          <p id="accountDeleteStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
-        </section>
-
         <div class="account-actions">
           <a id="accountContinue" href="/library" class="documents-primary-link">Open library</a>
           <a href="/documents" class="documents-secondary-link">Resource Store</a>
           <button id="accountSignOut" type="button" class="documents-secondary-link">Log out</button>
         </div>
+
+        <details class="account-advanced">
+          <summary>Advanced account options</summary>
+          <section class="account-danger-zone">
+            <h3>Delete account</h3>
+            <p>Deleting your account removes sign-in access. Purchase records may be retained by BMAS for payment and compliance records.</p>
+            <label class="mt-3 block text-sm text-slate-700">
+              <span class="font-medium">Current password</span>
+              <input id="accountDeletePassword" type="password" class="account-input" autocomplete="current-password" />
+            </label>
+            <label class="mt-3 block text-sm text-slate-700">
+              <span class="font-medium">Type DELETE to confirm</span>
+              <input id="accountDeleteConfirm" class="account-input" autocomplete="off" />
+            </label>
+            <button id="accountDeleteSubmit" type="button" class="account-danger-btn">Delete account</button>
+            <p id="accountDeleteStatus" class="min-h-5 text-sm text-slate-600" role="status"></p>
+          </section>
+        </details>
       </div>
 
       <div id="accountAuthPanel">
