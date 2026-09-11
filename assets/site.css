@@ -658,11 +658,12 @@ body[data-page="service-cafeteria"] {
 }
 
 .account-shell {
-  min-height: 64vh;
+  min-height: 72vh;
 }
 
 .account-page-header {
-  margin-bottom: 1.25rem;
+  max-width: 46rem;
+  margin-bottom: 1.5rem;
   border-top: 1px solid #cbd5e1;
   padding-top: 1.25rem;
 }
@@ -675,6 +676,13 @@ body[data-page="service-cafeteria"] {
   line-height: 1.08;
 }
 
+.account-page-header > p:not(.documents-kicker) {
+  margin-top: 0.6rem;
+  color: #475569;
+  font-size: 0.96rem;
+  line-height: 1.65;
+}
+
 .account-layout {
   display: grid;
   gap: 1rem;
@@ -684,35 +692,58 @@ body[data-page="service-cafeteria"] {
 
 .account-card {
   border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  background: #fff;
-  padding: 1rem;
-  box-shadow: 0 8px 18px rgba(15,23,42,0.045);
+  border-radius: 0.5rem;
+  background: rgba(255,255,255,0.97);
+  padding: 1.15rem;
+  box-shadow: 0 18px 42px rgba(15,23,42,0.075);
 }
 
 .account-card h2 {
   color: #0f172a;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   font-weight: 820;
+}
+
+.account-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 1rem;
+}
+
+.account-panel + .account-panel {
+  margin-top: 0.85rem;
+}
+
+.account-panel-primary {
+  background:
+    linear-gradient(135deg, rgba(var(--bmas-teal-rgb),0.08), rgba(255,255,255,0.98) 48%),
+    #fff;
 }
 
 .account-profile-header {
   display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr);
-  gap: 0.7rem;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 0.85rem;
   align-items: center;
 }
 
 .account-avatar {
   display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 3rem;
+  height: 3rem;
   place-items: center;
-  border-radius: 999px;
+  border-radius: 0.5rem;
   background: #0f766e;
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 850;
+}
+
+.account-profile-header p {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.88rem;
 }
 
 .account-details {
@@ -743,23 +774,57 @@ body[data-page="service-cafeteria"] {
 }
 
 .account-settings-form {
-  margin-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 0.85rem;
+  display: grid;
+  gap: 0.75rem;
 }
 
 .account-settings-form h3 {
-  margin-bottom: 0.65rem;
   color: #0f172a;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 
+.account-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.account-section-heading span {
+  border-radius: 999px;
+  background: #ecfdf5;
+  padding: 0.25rem 0.55rem;
+  color: #047857;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.account-help {
+  margin-top: 0.55rem;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.account-password-panel {
+  border-color: rgba(var(--bmas-teal-rgb),0.22);
+  background: #f8fbfb;
+}
+
+#accountRecoveryFields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+#accountRecoveryFields.hidden {
+  display: none;
+}
+
 .account-danger-zone {
-  margin-top: 1rem;
-  border-top: 1px solid #fecaca;
+  border-color: #fecaca;
   background: #fff7f7;
-  padding: 0.85rem;
 }
 
 .account-danger-zone h3 {
@@ -809,11 +874,24 @@ body[data-page="service-cafeteria"] {
   font-size: 0.86rem;
 }
 
-.account-card input {
-  min-height: 2.35rem;
-  padding-top: 0.45rem;
-  padding-bottom: 0.45rem;
+.account-input {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+  padding: 0.62rem 0.75rem;
+  color: #0f172a;
   font-size: 0.9rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.account-input:focus {
+  border-color: var(--bmas-teal);
+  box-shadow: 0 0 0 3px rgba(var(--bmas-teal-rgb),0.14);
+  outline: none;
 }
 
 .account-card .documents-primary-btn,
@@ -826,20 +904,53 @@ body[data-page="service-cafeteria"] {
 }
 
 .account-card .documents-primary-btn {
-  margin-top: 0.65rem;
+  min-height: 2.75rem;
+  margin-top: 0.15rem;
+  padding: 0.7rem 1rem;
 }
 
 .account-card .min-h-5 {
   min-height: 1rem;
 }
 
+.account-text-btn,
+.account-toggle-btn {
+  width: 100%;
+  min-height: 2.6rem;
+  border-radius: 0.375rem;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.account-text-btn {
+  color: #0f766e;
+}
+
+.account-text-btn:hover,
+.account-text-btn:focus-visible {
+  color: #0a3f46;
+}
+
+.account-toggle-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  padding: 0.6rem 0.85rem;
+}
+
+.account-toggle-btn:hover,
+.account-toggle-btn:focus-visible {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
 @media (min-width: 900px) {
   .account-layout {
-    grid-template-columns: minmax(0, 34rem);
+    grid-template-columns: minmax(0, 39rem);
   }
 
   .account-card {
-    padding: 1.15rem;
+    padding: 1.35rem;
   }
 
   .account-details {
